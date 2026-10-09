@@ -74,9 +74,9 @@ What carries over unchanged:
 
 ## 5. Phase I milestones
 
-Epic: [#1](https://github.com/gootecks/SF4-Ember-Netplay/issues/1) (sub-issues #2–#20)
+Epic: [#1](https://github.com/gootecks/SF4-Ember-Netplay/issues/1) (sub-issues #2–#20, plus #33 upstream offer after the playtest)
 
-Critical path to the playtest: **M0 → M3 → M4 → M6**. That path runs the existing Windows `sf4-net.exe` inside our own Wine prefix, the way it runs under Highball today. M1 + M2 (the native helper) are the "native" track and the upstream contribution. They run in parallel and join the playtest build only if they're ready and stable. M5 runs alongside M4.
+Critical path to the playtest: **M0 → M3 → M4 → M6**. That path runs the existing Windows `sf4-net.exe` inside our own Wine prefix, the way it runs under Highball today. M1 + M2 (the native helper) are the "native" track. They run in parallel and join the playtest build only if they're ready and stable. M5 runs alongside M4. Nothing in Phase I waits on upstream.
 
 ### M0 — Pin our own engine (gate for everything)
 
@@ -148,19 +148,20 @@ Build this as a Swift package, not inside the app target, so FreeFighter can con
 | DXVK→MoltenVK hitching or frame pacing hurts rollback feel | Low (already played well on Mac mini) | High | M0 measurement baseline |
 | Discord IPC can't reach out of Wine | Medium | Low | Degrade gracefully; native SDK in Phase II |
 | SSFIV Steam update moves the RVAs | Low (game is frozen) | High | Already pinned by SHA. Block launch on mismatch |
-| Upstream declines the contribution | Medium | Low | The PoC stands on its own as a fork. Keep the Windows changes additive so they can be offered again later |
+| Upstream declines the contribution | Medium | Low | Irrelevant to Phase I: we build and playtest on our fork first and only offer the work afterwards. Keep the Windows changes additive so the offer stays easy to accept |
 
 ## 7. Decisions (2026-10-09)
 
 1. **Engine: self-managed, pinned, in Phase I.** For the PoC nobody needs engine updates, and if it succeeds we'll be making fighting-game-specific runtime tweaks in-house anyway. Highball is used only as the M0 reference.
 2. **Distribution: standalone `Ember.app` first** as the proof of concept. FreeFighter adopts `EmberKit` in Phase II (II-B).
-3. **Upstream: contribution first, fork as a fallback.** Ember maintainers run `embernetplay.link` and appear receptive to PRs. Offer M1/M2, and later the Phase II protocol and server work, upstream through an introduction from an Ember supporter. If they decline, the fork is fine: Phase I needs no server changes.
+3. **Upstream: build and prove it on our fork first, then offer it.** Phase I depends on no upstream decision. After the M6 playtest, offer the work to the Ember maintainers (who run `embernetplay.link` and appear receptive to PRs), ideally through an introduction from an Ember supporter, with a working demo rather than a proposal. If they decline, the fork stands on its own; Phase I needs no server changes.
 
-### Upstream approach
+### Upstream approach (after M6)
 
-- Open a short discussion or issue on Confetti3/SF4-Ember-Netplay explaining the Mac goal before sending code. Lead with the M2 design note, because it is the only change Windows users would ship.
-- Keep PRs small and reviewable: (1) the TCP helper transport in `HelperClient`, (2) the `Launcher.exe` `--helper` flag, (3) the macOS sf4-net target. Each PR has tests and changes nothing for Windows when unused.
-- Follow the existing conventions: the conventional-commit style seen in their history, and Windows CI passing.
+- Lead with evidence: the playtest report, a short gameplay clip of Mac↔Windows matches, and the notarized build.
+- Then open a short discussion on Confetti3/SF4-Ember-Netplay linking the M2 design note, because M2 is the only change Windows users would ship.
+- Offer small, reviewable PRs: (1) the TCP helper transport in `HelperClient`, (2) the `Launcher.exe` `--helper` flag, (3) the macOS sf4-net target. Each has tests and changes nothing for Windows when unused.
+- Follow their conventions: the conventional-commit style seen in their history, and Windows CI passing.
 
 ## 8. Phase II+ roadmap
 
@@ -226,7 +227,7 @@ flowchart LR
 ## 9. Next steps
 
 1. Run M0 on the Mac mini: inventory the Highball reference, then script our own pinned engine and prefix.
-2. Write the M2 design note in `docs/design/` and start the upstream conversation.
+2. Write the M2 design note in `docs/design/` (for our own build; it doubles as the upstream pitch later).
 3. Build `EmberKit` (M3) and then `Ember.app` (M4).
 
 ## 10. Tracking
