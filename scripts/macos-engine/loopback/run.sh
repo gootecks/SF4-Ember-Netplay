@@ -15,8 +15,9 @@ SCRATCH="$TMP/ember-m0-loopback-$$"
 export WINEPREFIX="$SCRATCH/pfx"
 export WINEDEBUG=-all
 export WINEDLLOVERRIDES="winemenubuilder.exe=d;mscoree,mshtml="
-# The Highball engine is an x86_64 Mach-O build that finds its dylibs via lib/.
-export DYLD_FALLBACK_LIBRARY_PATH="$ENGINE/lib:${DYLD_FALLBACK_LIBRARY_PATH:-/usr/lib}"
+# Highball engines keep dylibs in lib/; m0.sh engines keep them in frameworks/.
+export DYLD_FALLBACK_FRAMEWORK_PATH="$ENGINE/frameworks"
+export DYLD_FALLBACK_LIBRARY_PATH="$ENGINE/frameworks:$ENGINE/lib:${DYLD_FALLBACK_LIBRARY_PATH:-/usr/lib}"
 WINE="$ENGINE/bin/wine"
 WINESERVER="$ENGINE/bin/wineserver"
 PROBE="$SCRATCH/winsock_probe.exe"
