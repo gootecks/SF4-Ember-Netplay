@@ -32,8 +32,9 @@ EOF
 
 kill_ours() {
     [ -n "$WINESERVER" ] && [ -d "$PFX" ] || return 0
-    WINEPREFIX="$PFX" "$WINESERVER" -k 2>/dev/null || true
-    WINEPREFIX="$PFX" "$WINESERVER" -w 2>/dev/null || true
+    wine_env
+    "$WINESERVER" -k 2>/dev/null || true
+    "$WINESERVER" -w 2>/dev/null || true
 }
 
 # ---- engine ------------------------------------------------------------------
@@ -413,8 +414,9 @@ step_kill() {
     load_engine
     ours_alive || { say "no wineserver for this prefix (nothing to do)"; return 0; }
     say "wineserver -k for $PFX"
-    WINEPREFIX="$PFX" "$WINESERVER" -k || true
-    WINEPREFIX="$PFX" "$WINESERVER" -w || true
+    wine_env
+    "$WINESERVER" -k || true
+    "$WINESERVER" -w || true
 }
 
 # ---- driver ------------------------------------------------------------------
