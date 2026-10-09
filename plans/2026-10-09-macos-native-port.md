@@ -101,6 +101,7 @@ Critical path to the playtest: **M0 → M3 → M4 → M6**. That path runs the e
 - `HelperClient`: a TCP transport implementation behind the existing interface. The posix client is the model; Winsock replaces named-pipe I/O. Use the same authentication handshake (`HelperClient.cxx:135`).
 - `ember-discord.exe`: Phase I keeps the Windows x64 helper running under Wine. Its stdin bootstrap does `OpenProcess` on the game pid (`src/discord/BridgeServer.hxx:25-29`), which works inside one prefix. [INFERENCE] Discord IPC from inside Wine to the native Discord app needs a bridge. Verify in M0; if it fails, Discord linking is degraded in Phase I and becomes a native Discord Social SDK port in Phase II.
 - These are additive changes to the shared build. Windows behavior has to stay byte-identical when `--helper` is absent.
+- **Compatibility caveat:** the room build gate is the SHA of the `Sidecar.dll` binary itself (`src/sf4e/sf4e.cxx:43,229`, checked at `src/session/sf4e__SessionServer.cxx:492`; public room lists are keyed by it too, `sf4e__NetplayRuntime__PublicRooms.cxx:48,73`). A `Sidecar.dll` we build ourselves, even with these changes inactive, can only match other copies of that same build. So until upstream ships M2 in an official release, the M1/M2 track is Mac↔Mac only, and the playtest build stays on the critical path's unmodified official payload.
 - **Gate:** Windows CI stays green, and a new test covers the TCP transport handshake: rejection on a bad token, oversize frames, and peer close.
 
 ### M3 — `EmberKit` engine manager (Swift package)
@@ -121,7 +122,7 @@ Build this as a Swift package, not inside the app target, so FreeFighter can con
 - Native `ember://` handling (`CFBundleURLTypes`) that forwards to `Launcher.exe` in the prefix. This replaces the HKCU registration.
 - Single-instance and lifecycle: quitting the app tears down the game, Steam (if the app started it) and the helper.
 - Controllers: validate a PS5 pad, an Xbox pad, and a common fight stick/Hitbox through Wine's IOHID → DInput/XInput mapping. Document per-device quirks, and add an SDL mapping override only where needed.
-- Updates: Ember payload updates go through `EmberKit` from GitHub releases, with the Windows payload (`Launcher.exe`, `Sidecar.dll`, `ember-discord.exe`) always taken from **one tagged release**, so Mac and Windows players stay on the same build. For the PoC, app updates are a new DMG; Sparkle waits for Phase II.
+- Updates: `EmberKit` downloads the **unmodified official Ember release** from `Confetti3/SF4-Ember-Netplay` (asset SHA-256 + `MANIFEST.txt`), never a payload we built. That is what keeps Mac players in the same rooms and public queue as Windows players, and it tracks upstream's release pace (often every 1–2 days, and v1.1.1 already refuses v1.1.0) with no work on our side. Default to upstream's latest release, with a pin option for playtests. For the PoC, app updates are a new DMG; Sparkle waits for Phase II.
 - **Gate:** a non-technical tester goes from DMG to an online match with no terminal use.
 
 ### M5 — Build, CI, release
@@ -235,5 +236,6 @@ flowchart LR
 - Repo: <https://github.com/gootecks/SF4-Ember-Netplay> (fork; default branch `release`)
 - Project board: [Ember for Mac (#3)](https://github.com/users/gootecks/projects/3), linked to the repo
 - Milestones: Phase I — macOS proof of concept (epic #1) · Phase II — Social, stats & FreeFighter (#21) · Phase III — Fighting-game runtime tuning (#29)
-- Workflow: issue → `feat/N-description` branch from `release` → PR with `Closes #N` → squash merge. Upstream PRs go to Confetti3/SF4-Ember-Netplay from separate branches.
+- Workflow: issue → `feat/N-description` branch from `release` → PR into **gootecks/SF4-Ember-Netplay** with `Closes #N` → squash merge. `gh repo set-default` points at the fork, so `gh pr create` targets it. In the web UI, open PRs from `https://github.com/gootecks/SF4-Ember-Netplay/compare/release...<branch>` rather than the "Compare & pull request" banner, which defaults to the upstream base.
+- Upstream sync: a read-only `upstream` git remote (push disabled). Pull their changes with `git fetch upstream --tags` and merge a release tag into `release`. The fork link stays in place: "Leave fork network" is permanent and drops the repo's issues and PRs.
 - Labels: `feat`, `fix`, `chore`, `docs`, `research`, `epic`, `priority:high|medium|low`
