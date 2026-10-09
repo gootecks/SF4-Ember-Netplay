@@ -20,14 +20,15 @@ Rig: `EMBER_M0_ROOT=/Volumes/EmberM0` (APFS sparse bundle), Steam library `R:` o
 | --- | --- | --- |
 | 1 | Join/create failed after a while: macOS firewall blocking Wine | **Wrong.** A network blip; Ember's UDP check stayed "blocked" until restart |
 | 2 | Choppy online play | **Found a real M0 bug:** the game ran on wined3d, not DXVK. Fixed in #35 / PR #36 |
-| 3 | M0 runs slower than its peer (negative rift) | Real. Smaller after the DXVK fix, still behind Highball; cause unknown |
+| 3 | M0 runs slower than its peer (negative rift) | Real on 1.1.1 + msync. **Matched Highball** on 1.1.2 + msync off (see 11); which change fixed it is unknown |
 | 4 | Rollbacks up close with auto delay 1 | Real. Manual delay 2 used as a stopgap; Ember 1.1.2 changes auto delay |
 | 5 | DXVK shader cache not saved | **Wrong.** It is saved; the wrong file was checked first |
 | 6 | Slow startup is slow disk (exFAT/FSKit) | **Ruled out** |
 | 7 | VS-screen hang at 13:18 | Real, unexplained. Game waiting on a signal, not loading |
 | 8 | "Startup takes a fixed ~2 min" | **Wrong metric.** The log line used fires at first match start, not at the menu |
-| 9 | msync lost-wakeup bug causes the hang/slow start | Built on #8, so unproven. One msync-off launch so far; no hang data yet |
+| 9 | msync lost-wakeup bug causes the hang/slow start | Built on #8, so unproven. 3 matches with msync off, no hang (see 11) |
 | 10 | Ember 1.1.2 on the rig | **Works.** Installed and launched |
+| 11 | Online play on 1.1.2 + msync off | **Much better:** rift −0.58, speed-up 1.1 ms/s, near Highball's −0.26 / 1.3 ms/s |
 
 ## 1. Join/create failures (about 11:06–11:13)
 
@@ -109,10 +110,28 @@ Ember's per-15-second `Netplay [Ns]` lines report rift (frames ahead or behind t
 - **Idea:** Highball's Wine includes a fix for an msync bug (highball#224): when a thread waits on several objects and one other than the first is signalled, the registrations before it are dropped, so later wake-ups can be lost and threads wait forever. The M0 engine lacks that fix (see `2026-10-09-m0-highball-reference.md`, gaps table). Highball's Steam pin also runs with esync and msync off. The parked loader threads in 7 fit this.
 - **Problem:** the main supporting evidence was the "fixed 2-minute timeout" from 8, which was a bad metric.
 - **Test run 13:34:54:** `WINEMSYNC=0` with Ember 1.1.2 (manifest `/tmp/m0-manifest-1.1.2-nomsync.json`; switching sync mode requires `m0.sh kill`, then `steam-start`, then `launch`). The run started and played normally. The wrong metric gave 130 s, which says nothing.
-- **Status:** unproven. What would settle it: stopwatch startup times and whether the VS-screen hang recurs over several matches with msync off versus on. A hang with msync off rules it out.
+- **Status:** unproven. What would settle it: stopwatch startup times and whether the VS-screen hang recurs over several matches with msync off versus on. A hang with msync off rules it out. The first 3 matches with msync off had no hang (see 11), but with msync on there was only one hang in 16 room matches on DXVK (10 in `sf4e.4.log`, 5 in `sf4e.3.log`, 1 in `sf4e.2.log`), so 3 clean matches prove nothing yet.
 
 ## 10. Ember 1.1.2
 
 - Installed with `m0.sh ember-install` to `C:\sf4e-1.1.2` beside 1.1.1; 4755 files verified against `MANIFEST.txt`.
 - Launched 13:34:54; `sf4e.log` shows `Sidecar build: revision=454a6fa00d8b` (1.1.1 was `3ee07e19436f`). Tracked in #37 / PR #38.
 - 1.1.1 and 1.1.2 players cannot share rooms. Do not use Ember's in-game updater on the rig; it would overwrite `C:\sf4e-1.1.1`, which no longer matches the manifest's version.
+
+## 11. Online play on Ember 1.1.2 with msync off (13:47–13:54)
+
+- **Setup:** the 13:34:54 launch (Ember 1.1.2, `WINEMSYNC=0`, DXVK), manual input delay 2 (`applied=2`). Three relayed room matches against the same opponent, with one spectator. Player report: "seems way better now".
+- **Every match started:** `Input: P1 plays with …` came 8–10 s after `Battle jobs` each time; no VS-screen hang.
+- **Numbers** (Ember's `Netplay [15s]` windows, 20 in total):
+
+| Run | Ping | Rift (mean) | Speed-up | Rollbacks |
+| --- | --- | --- | --- | --- |
+| Highball (all logs) | median 36 ms | −0.26 frames | 1.3 ms/s | — |
+| M0, 1.1.1, msync on, 11:52–12:13 | avg 57–122 ms | −2.17 frames | 9.9 ms/s | — |
+| M0, 1.1.2, msync off, match 1 | 125–166 ms | −0.66 frames | 1.13 ms/s | 8.4/s |
+| M0, 1.1.2, msync off, match 2 | 74–120 ms | −0.56 frames | 0.28 ms/s | 4.9/s |
+| M0, 1.1.2, msync off, match 3 | 76–120 ms (one 1108 ms spike at the end) | −0.54 frames | 1.63 ms/s | 4.0/s |
+| M0, 1.1.2, msync off, all | 74–166 ms | −0.58 frames | 1.08 ms/s | 5.6/s |
+
+- **Verdict:** the M0 rig no longer falls behind its opponent. Rift and speed-up are now at Highball's level, even at higher ping than the 11:52–12:13 matches.
+- **Caveat:** two things changed at once (Ember 1.1.1 → 1.1.2 and msync on → off), plus a different opponent. It is not known which change fixed it. To separate them, play a few matches on 1.1.2 with msync **on** (`WINEMSYNC=1`, same kill / steam-start / launch steps). If rift stays near −0.5, the fix came from 1.1.2. If it goes back toward −2, msync was the cause.
