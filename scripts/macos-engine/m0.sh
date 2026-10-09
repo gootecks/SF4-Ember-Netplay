@@ -375,6 +375,8 @@ step_launch() {
     exe_dir="$PFX/drive_c/sf4e-$ver"
     [ -f "$exe_dir/Launcher.exe" ] || die "Ember not installed; run: m0.sh ember-install"
     steam_running && steam_logged_on 0 || die "Steam is not running/logged on in this prefix; run: m0.sh steam-start"
+    grep -q '"45760"' "$STEAM_DIR/steamapps/libraryfolders.vdf" 2>/dev/null ||
+        die "Steam has not adopted a library containing app 45760 (SSFIV would boot as Arcade Edition); run: m0.sh kill && m0.sh steam-start"
     if ours_has_proc SSFIV.exe; then say "SSFIV.exe already running in this prefix (nothing to do)"; return 0; fi
     wine_env
     if [ "$HUD" -eq 1 ]; then export DXVK_HUD=fps,frametimes MTL_HUD_ENABLED=1; fi
