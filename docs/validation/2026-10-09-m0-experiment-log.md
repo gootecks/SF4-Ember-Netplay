@@ -144,4 +144,22 @@ Ember's per-15-second `Netplay [Ns]` lines report rift (frames ahead or behind t
 - **Reading:** the floating-point state was `x87 pc=24 rc=near mxcsr=0x1fbf` at the start and at every report. That is the same as in every clean M0 match and on Highball. All three subsystems differ from the first checkpoint, so the two games were never in step. A floating-point drift would usually show up in one subsystem later in the match. [INFERENCE] The likelier causes are a different starting state or inputs applied on different frames. Which side was wrong cannot be told from one log.
 - **Base rates:** Highball has 73 online matches with no desync. The M0 rig has had 1 desync in 24. Zero desyncs in 73 matches at a rate of 1 in 24 has a probability of about 5%, so this is weak evidence against the M0 rig. Ember's own release notes list desyncs as a known open issue (v0.8.5) and have fixed several since then (v0.9.5 throws, v0.9.9-rc2 shadow moves).
 - **Next match:** at 13:59 against another new opponent, `952a5905` (Direct). It ran without a desync.
-- **Needed to settle it:** the opponent's `%APPDATA%\sf4e\logs` (`sf4e.log` and the newest `session-*.log`) from the 13:56 match, plus their OS (Windows, Proton or Mac). If it happens again, set `SF4E_ROLLBACK_DIAGNOSTICS=1` on both PCs (release notes v0.8.12).
+- **Opponent logs are not a realistic source.** After a desync the opponent leaves or the room locks the player out, so there is nobody to ask. Diagnostics on the M0 side are already on: `RollbackDiag [periodic]` blocks appear in `sf4e.log`. The practical test is the desync rate on this rig over many matches, compared with Highball's 0 in 73.
+
+## 13. Five clean matches against one opponent (13:59–14:12)
+
+- **Setup:** same launch as 11 and 12. Opponent `952a5905`: four direct matches and one relayed match. Player report: "felt pretty good". After that the rig spectated a match (generation 21, peer `17e955f4`).
+- **Every match started and finished:** `Input: P1 plays` came 8.0 s after `Battle jobs` each time. No VS-screen hang, no desync, every match ended with a result.
+
+| Gen | Route | Windows | Rift (mean) | Speed-up | Rollbacks | Longest prediction stall |
+| --- | --- | --- | --- | --- | --- | --- |
+| 11 | Direct | 10 | −0.23 frames | 0.95 ms/s | 0.7/s | 3267 ms (first 20 s) |
+| 13 | Relayed | 8 | −0.28 frames | 1.94 ms/s | 1.0/s | 417 ms (one 2502 ms ping at start) |
+| 15 | Direct | 7 | −0.21 frames | 0.51 ms/s | 1.2/s | 47 ms |
+| 17 | Direct | 6 | −0.86 frames | 3.66 ms/s | 1.8/s | 914 ms |
+| 19 | Direct | 8 | −0.51 frames | 2.84 ms/s | 0.8/s | 838 ms |
+| All | | 39 | −0.39 frames | 1.88 ms/s | 1.0/s | |
+
+- Only windows between match start and `Room: match ended` are counted. Windows that straddle the end of a match show rift down to −4.4 frames with no rollbacks, so they are menu and results-screen time.
+- **Against Highball** (rift −0.26 frames, speed-up 1.3 ms/s): close, at a ping of 56–181 ms. The Highball logs have no `stall_duration` lines, so the stalls cannot be compared.
+- **Totals since the switch to 1.1.2 with msync off (13:47):** 9 played matches, 0 VS-screen hangs, 1 desync. The msync on/off A/B from 11 is still open.
