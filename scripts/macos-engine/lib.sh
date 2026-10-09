@@ -20,7 +20,7 @@ init_paths() {
     jq -e . "$MANIFEST" >/dev/null 2>&1 || die "manifest is not valid JSON: $MANIFEST"
     CACHE="$ROOT/cache" ENGINES="$ROOT/engine" PFX="$ROOT/prefix" LOGS="$ROOT/logs"
     STEAM_DIR="$PFX/drive_c/Program Files (x86)/Steam"
-    CONN_LOG="$STEAM_DIR/logs/connection_log.txt"
+    LOGIN_LOG="$STEAM_DIR/logs/steamui_login.txt"
     MARKER="$PFX/.ember-m0-prefix"
 }
 
@@ -236,16 +236,14 @@ log_env() {
 }
 
 # ---- process inspection (our prefix only) -------------------------------------
-# PIDs of wine processes whose environment has WINEPREFIX=<our prefix>.
+# PID of this prefix's wineserver: it keeps /tmp/.wine-<uid>/server-<dev>-<ino>/lock open (hex, Wine's server dir naming).
+# ps cannot see WINEPREFIX in Wine processes' environments, and macOS lsof cannot match unix sockets by path.
 ours_pids() {
-    local comm
-    comm=$(ps -axww -o pid=,comm= | awk '$0 ~ /\/wine[^\/]*$/ {print $1}')
-    [ -n "$comm" ] || return 0
-    ps -axeww -o pid=,command= | awk -v p="$PFX" -v ids="$comm" '
-        BEGIN { n = split(ids, a, "\n"); for (i = 1; i <= n; i++) ok[a[i]] = 1 }
-        { if (!($1 in ok)) next
-          s = "WINEPREFIX=" p; i = index($0, s)
-          if (i) { r = substr($0, i + length(s), 1); if (r == "" || r == " ") print $1 } }'
+    local f
+    [ -d "$PFX" ] || return 0
+    f="/tmp/.wine-$(id -u)/server-$(printf '%x-%x' "$(stat -f %d "$PFX")" "$(stat -f %i "$PFX")")/lock"
+    [ -f "$f" ] || return 0
+    lsof -t "$f" 2>/dev/null | sort -un || true
 }
 ours_alive() { [ -n "$(ours_pids)" ]; }
 
@@ -257,15 +255,15 @@ ours_tasklist() {
 ours_has_proc() { ours_tasklist | grep -qiF "$1"; }
 steam_running() { ours_has_proc steam.exe; }
 
-# Last connection-state line in connection_log.txt after byte offset $1.
+# Last "SetLoginState: <state>" line in steamui_login.txt after byte offset $1.
 conn_state() {
     local off=${1:-0} size
-    [ -f "$CONN_LOG" ] || return 0
-    size=$(stat -f %z "$CONN_LOG")
+    [ -f "$LOGIN_LOG" ] || return 0
+    size=$(stat -f %z "$LOGIN_LOG")
     [ "$off" -le "$size" ] || off=0
-    { tail -c +$((off + 1)) "$CONN_LOG" | grep -aE '^\[[0-9-]+ [0-9:]+\] \[[A-Za-z ]+,' | tail -n 1; } || true
+    { tail -c +$((off + 1)) "$LOGIN_LOG" | grep -a 'SetLoginState: ' | tail -n 1; } || true
 }
-steam_logged_on() { case "$(conn_state "${1:-0}")" in *'[Logged On'*) return 0 ;; *) return 1 ;; esac; }
+steam_logged_on() { case "$(conn_state "${1:-0}")" in *'SetLoginState: Success'*) return 0 ;; *) return 1 ;; esac; }
 
 # spawn_detached <logfile> <cwd> <cmd...>: survives the calling shell.
 # No nohup: /usr/bin/nohup is SIP-protected, so exec'ing through it strips DYLD_* and wineserver can't find its dylibs.

@@ -17,7 +17,7 @@ subcommands:
   steam-install           download SteamSetup.exe (SHA-checked) and run it silently
   library <dir> [letter]  map an existing Steam library (default letter E) and register it with Steam
   steam-login             start Steam visibly for a one-time interactive login
-  steam-start             start Steam hidden, wait for "[Logged On" in connection_log.txt
+  steam-start             start Steam hidden, wait for "SetLoginState: Success" in steamui_login.txt
   ember-install           download, verify and install Ember into C:\sf4e-<version>
   game-check              locate SSFIV.exe in the Steam libraries and compare build/SHA-256
   launch [--hud]          start Ember's Launcher.exe detached (Steam must be logged on)
@@ -259,18 +259,18 @@ step_steam_start() {
     if steam_running; then
         say "Steam running but not logged on; waiting"
     else
-        [ ! -f "$CONN_LOG" ] || off=$(stat -f %z "$CONN_LOG")
+        [ ! -f "$LOGIN_LOG" ] || off=$(stat -f %z "$LOGIN_LOG")
         start_steam ${args[@]+"${args[@]}"}
     fi
     while [ "$t" -lt "$timeout" ]; do
         if steam_logged_on "$off"; then say "Steam logged on after ${t}s"; return 0; fi
         sleep 1
         t=$((t + 1))
-        [ -f "$CONN_LOG" ] && [ "$off" -gt "$(stat -f %z "$CONN_LOG")" ] && off=0
+        [ -f "$LOGIN_LOG" ] && [ "$off" -gt "$(stat -f %z "$LOGIN_LOG")" ] && off=0
     done
-    warn "last connection state: $(conn_state "$off")"
+    warn "last login state: $(conn_state "$off")"
     tail -n 20 "$LOGS/$STAMP-steam.log" 2>/dev/null || true
-    die "Steam did not reach '[Logged On' within ${timeout}s (not logged in yet? run: m0.sh steam-login)"
+    die "Steam did not reach 'SetLoginState: Success' within ${timeout}s (not logged in yet? run: m0.sh steam-login)"
 }
 
 # ---- ember -------------------------------------------------------------------
@@ -399,7 +399,7 @@ step_status() {
     else
         say "wineserver: not running for this prefix"
     fi
-    say "steam connection: $(conn_state 0 | cut -c1-80)"
+    say "steam login: $(conn_state 0 | cut -c1-100)"
     for f in launcher.log sf4e.log; do
         f="$PFX/drive_c/users/$user/AppData/Roaming/sf4e/logs/$f"
         [ -f "$f" ] || continue
