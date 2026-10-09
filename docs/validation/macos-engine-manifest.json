@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "ember-m0-sikarugir10.0_6-kegworks-dxvk1.10.4-moltenvk1.4.1",
+  "id": "ember-m0-sikarugir10.0_6-kegworks-dxvk1.10.4-moltenvk1.4.1-r2",
   "reference": {
     "highball": {
       "app": "Highball 0.10.13 (app.highball.Highball)",
@@ -29,7 +29,8 @@
   "engine": {
     "wine": "bin/wine",
     "wineserver": "bin/wineserver",
-    "wineboot": null
+    "wineboot": null,
+    "dxvkDllPathPrepend": "renderers/d9vk/wine"
   },
   "components": [
     {
@@ -166,15 +167,14 @@
       "sha256": "9fa15479e7ff6abd99c1d07be285fb95f41fc6991586502427152b1f7d6ccb8a",
       "format": "tar.xz",
       "install": [
-        { "from": "Template-1.0.11.app/Contents/Frameworks/renderer/d9vk/wine/i386-windows/d3d9.dll", "to": "prefix:drive_c/windows/syswow64/d3d9.dll" },
-        { "from": "Template-1.0.11.app/Contents/Frameworks/renderer/d9vk/wine/x86_64-windows/d3d9.dll", "to": "prefix:drive_c/windows/system32/d3d9.dll" }
+        { "from": "Template-1.0.11.app/Contents/Frameworks/renderer/d9vk/wine/i386-windows/d3d9.dll", "to": "engine:renderers/d9vk/wine/i386-windows/d3d9.dll" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/renderer/d9vk/wine/x86_64-windows/d3d9.dll", "to": "engine:renderers/d9vk/wine/x86_64-windows/d3d9.dll" }
       ]
     }
   ],
   "prefix": {
     "windowsVersion": "win10",
     "dllOverrides": {
-      "d3d9": "native,builtin",
       "winemenubuilder.exe": "d"
     },
     "env": {
@@ -201,7 +201,7 @@
       "WINEDEBUG": "fixme-all",
       "CX_FWD_COMPAT_GL_CTX": "1"
     },
-    "notes": "Skip the dxvk component in a fallback prefix; if its d3d9.dll files are already in system32/syswow64, delete both (a builtin-stamped DXVK DLL left there can still be selected). Wine's builtin d3d9 then renders through wined3d on macOS OpenGL. Expect lower performance and shader/visual differences; use only to separate engine faults from DXVK/MoltenVK faults."
+    "notes": "No WINEDLLPATH_PREPEND, so Wine's builtin d3d9 renders through wined3d on macOS OpenGL. Expect lower performance and shader/visual differences; use only to separate engine faults from DXVK/MoltenVK faults."
   },
   "steam": {
     "setupUrl": "https://cdn.cloudflare.steamstatic.com/client/installer/SteamSetup.exe",

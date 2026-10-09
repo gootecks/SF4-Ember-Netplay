@@ -35,7 +35,7 @@ scripts/macos-engine/m0.sh launch --hud
 | Step | What it does |
 | --- | --- |
 | `engine` | Downloads each component to `cache/`, verifies SHA-256, extracts, applies `engine:` install steps into `engine/<id>.tmp`, clears quarantine xattrs, renames to `engine/<id>`. Any failure deletes the tmp dir. |
-| `prefix` | `wineboot -i`, `wineserver -w`, `winecfg /v <windowsVersion>`, applies `prefix:` install steps (DXVK DLLs), `prefix.dllOverrides` under `HKCU\Software\Wine\DllOverrides`, `prefix.registry`; logs the effective env. `--renderer wined3d` skips DXVK and applies the manifest `fallback` block instead. The chosen renderer is stored in `prefix/.ember-m0-prefix` and reused by later steps. A failed build removes the half-made prefix. |
+| `prefix` | `wineboot -i`, `wineserver -w`, `winecfg /v <windowsVersion>`, applies `prefix:` install steps, `prefix.dllOverrides` under `HKCU\Software\Wine\DllOverrides`, `prefix.registry`; logs the effective env. `--renderer wined3d` applies the manifest `fallback` block instead. The chosen renderer is stored in `prefix/.ember-m0-prefix` and reused by later steps. A failed build removes the half-made prefix. |
 | `steam-install` | Downloads `SteamSetup.exe`, checks the manifest SHA-256 (on mismatch prints expected vs actual: Valve rotates the installer; update the manifest deliberately), runs it with `steam.installArgs`. |
 | `library <dir> [letter]` | Symlinks `prefix/dosdevices/<letter>:` to the host dir and adds the library (`<dir>` itself or its child holding `steamapps`) to `libraryfolders.vdf` (backup `.m0bak`, existing entries kept). Refused while our Steam runs, or while Highball's wineserver runs and a Highball bottle maps the same host dir (two Steam clients must not share a library). |
 | `steam-login` | Starts Steam with no hidden args, detached, for the one-time interactive login. |
@@ -74,7 +74,15 @@ Derived from the engine root (not in the manifest): `DYLD_FALLBACK_FRAMEWORK_PAT
 `GST_PLUGIN_PATH=<engine>/frameworks/GStreamer.framework/Versions/1.0/lib/gstreamer-1.0`. The script sets `WINEDEBUG=-all` first, then the manifest
 `prefix.env` (which sets `WINEDEBUG=fixme-all`) overrides it, so `fixme-all` is the effective default. `--debug` unsets `WINEDEBUG` (Wine's default
 debug channels). With `--renderer wined3d` the manifest `fallback.env` is used instead of `prefix.env`, and `fallback.dllOverrides` (`d3d9=builtin`) instead
-of `prefix.dllOverrides`; the `dxvk` component's prefix files are not installed and `dxvk.conf` is not written.
+of `prefix.dllOverrides`; `WINEDLLPATH_PREPEND` is not set and `dxvk.conf` is not written.
+
+**How DXVK is selected (renderer `dxvk`).** The DXVK-Kegworks `d3d9.dll` files are Wine-builtin stamped, so they are installed into the engine at
+`engine.dxvkDllPathPrepend` (`renderers/d9vk/wine/{i386,x86_64}-windows/`) and every wine call exports
+`WINEDLLPATH_PREPEND=<engine>/renderers/d9vk/wine`, which puts them ahead of Wine's own builtin `d3d9.dll` (Highball does the same; no `d3d9`
+override). Copying them into `system32`/`syswow64` with `d3d9=native,builtin` does not work: Wine treats a builtin-stamped DLL in the system
+directory as a placeholder and loads its own builtin, so the game silently renders through wined3d on macOS OpenGL (#35). To check a running game:
+`lsof -p <SSFIV pid>` must list `renderers/d9vk/wine/i386-windows/d3d9.dll` and no `wined3d.dll`, and the launcher wine log must contain
+`DXVK-Kegworks: v1.10.4-async` and `Found config file: C:\ember\dxvk.conf`.
 
 `prefix` also creates `drive_c/ember/logs/` and (DXVK only) `drive_c/ember/dxvk.conf` (`DXVK_CONFIG_FILE=C:\ember\dxvk.conf`, `DXVK_LOG_PATH=C:\ember\logs`):
 
