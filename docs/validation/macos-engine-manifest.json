@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 1,
+  "id": "ember-m0-sikarugir10.0_6-kegworks-dxvk1.10.4-moltenvk1.4.1",
+  "reference": {
+    "highball": {
+      "app": "Highball 0.10.13 (app.highball.Highball)",
+      "cli": "~/.local/bin/highball, no version flag; sha256 816796004a63481f1e30e6ca0793d7eff379d8fdc27dc086b863b423781ba2b4",
+      "engineId": "x64-sikarugir10.0_6-r22",
+      "wine": "wine sikarugir 10.0 (revision 6); Gcenx/Sikarugir Wine 10.0 new-WoW64, x86_64 under Rosetta 2",
+      "d3d9": "DXVK-Kegworks v1.10.4-async from Sikarugir Template-1.0.11 renderer/d9vk, Wine-builtin stamped, reached via WINEDLLPATH_PREPEND",
+      "moltenvk": "1.4.1 (Highball shadow-import rebuild; feature off unless MVK_SHADOW_IMPORT=1)",
+      "sync": "msync",
+      "windowsVersion": "win10",
+      "bottleRendererSetting": "dxmt (D3D11 only; SSFIV.exe is D3D9 and runs on the d9vk path)",
+      "dxvkConf": {
+        "dxvk.enableAsync": "True",
+        "SSFIV.exe d3d9.maxFrameLatency": "1"
+      }
+    },
+    "document": "docs/validation/2026-10-09-m0-highball-reference.md",
+    "highballOnlyPatchesNotReproduced": [
+      "wineserver msync registration-leak fix (wine10-msync / wine10-dep)",
+      "ntdll.so DEP always-on edit (wine10-dep)",
+      "winemac.so focus and retina fixes (winemac-focus)",
+      "libhbaudiobuf.dylib audio buffer",
+      "MoltenVK shadow-import patch (off by default)"
+    ]
+  },
+  "engine": {
+    "wine": "bin/wine",
+    "wineserver": "bin/wineserver",
+    "wineboot": null
+  },
+  "components": [
+    {
+      "name": "wine",
+      "version": "10.0 Sikarugir revision 6 (Gcenx new-WoW64)",
+      "license": "LGPL-2.1+",
+      "url": "https://github.com/Sikarugir-App/Engines/releases/download/v1.0/WS12WineSikarugir10.0_6.tar.xz",
+      "sha256": "9da7ee0cbf386522f3a9906943726d9c3c125dbbd9ab120e3cde80e88d6091b2",
+      "format": "tar.xz",
+      "install": [
+        { "from": "wswine.bundle", "to": "engine:." }
+      ]
+    },
+    {
+      "name": "runtime-frameworks",
+      "version": "Sikarugir Wrapper Template 1.0.11 (gnutls, freetype, SDL2, ICU, GStreamer, ...; D3DMetal / Apple GPTK deliberately not installed)",
+      "license": "mixed: LGPL-2.1 GStreamer and libs; the Apple GPTK D3DMetal in the same archive is not installed",
+      "url": "https://github.com/Sikarugir-App/Wrapper/releases/download/v1.0/Template-1.0.11.tar.xz",
+      "sha256": "9fa15479e7ff6abd99c1d07be285fb95f41fc6991586502427152b1f7d6ccb8a",
+      "format": "tar.xz",
+      "install": [
+        { "from": "Template-1.0.11.app/Contents/Frameworks/GStreamer.framework", "to": "engine:frameworks/GStreamer.framework" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libbrotlicommon.1.1.0.dylib", "to": "engine:frameworks/libbrotlicommon.1.1.0.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libbrotlicommon.1.dylib", "to": "engine:frameworks/libbrotlicommon.1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libbrotlicommon.dylib", "to": "engine:frameworks/libbrotlicommon.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libbrotlidec.1.1.0.dylib", "to": "engine:frameworks/libbrotlidec.1.1.0.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libbrotlidec.1.dylib", "to": "engine:frameworks/libbrotlidec.1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libbrotlidec.dylib", "to": "engine:frameworks/libbrotlidec.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libbrotlienc.1.1.0.dylib", "to": "engine:frameworks/libbrotlienc.1.1.0.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libbrotlienc.1.dylib", "to": "engine:frameworks/libbrotlienc.1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libbrotlienc.dylib", "to": "engine:frameworks/libbrotlienc.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libbz2.1.0.8.dylib", "to": "engine:frameworks/libbz2.1.0.8.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libbz2.1.0.dylib", "to": "engine:frameworks/libbz2.1.0.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libbz2.1.dylib", "to": "engine:frameworks/libbz2.1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libbz2.dylib", "to": "engine:frameworks/libbz2.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libcharset.1.dylib", "to": "engine:frameworks/libcharset.1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libcharset.dylib", "to": "engine:frameworks/libcharset.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libexslt.0.dylib", "to": "engine:frameworks/libexslt.0.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libexslt.dylib", "to": "engine:frameworks/libexslt.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libffi.8.dylib", "to": "engine:frameworks/libffi.8.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libffi.dylib", "to": "engine:frameworks/libffi.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libfreetype.6.dylib", "to": "engine:frameworks/libfreetype.6.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libfreetype.dylib", "to": "engine:frameworks/libfreetype.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libgmp.10.dylib", "to": "engine:frameworks/libgmp.10.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libgmp.dylib", "to": "engine:frameworks/libgmp.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libgmpxx.4.dylib", "to": "engine:frameworks/libgmpxx.4.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libgmpxx.dylib", "to": "engine:frameworks/libgmpxx.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libgnutls.30.dylib", "to": "engine:frameworks/libgnutls.30.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libgnutls.dylib", "to": "engine:frameworks/libgnutls.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libgnutlsxx.30.dylib", "to": "engine:frameworks/libgnutlsxx.30.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libgnutlsxx.dylib", "to": "engine:frameworks/libgnutlsxx.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libhogweed.6.9.dylib", "to": "engine:frameworks/libhogweed.6.9.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libhogweed.6.dylib", "to": "engine:frameworks/libhogweed.6.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libhogweed.dylib", "to": "engine:frameworks/libhogweed.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libiconv.2.dylib", "to": "engine:frameworks/libiconv.2.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libiconv.dylib", "to": "engine:frameworks/libiconv.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicudata.76.1.dylib", "to": "engine:frameworks/libicudata.76.1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicudata.76.dylib", "to": "engine:frameworks/libicudata.76.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicudata.dylib", "to": "engine:frameworks/libicudata.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicui18n.76.1.dylib", "to": "engine:frameworks/libicui18n.76.1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicui18n.76.dylib", "to": "engine:frameworks/libicui18n.76.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicui18n.dylib", "to": "engine:frameworks/libicui18n.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicuio.76.1.dylib", "to": "engine:frameworks/libicuio.76.1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicuio.76.dylib", "to": "engine:frameworks/libicuio.76.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicuio.dylib", "to": "engine:frameworks/libicuio.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicutest.76.1.dylib", "to": "engine:frameworks/libicutest.76.1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicutest.76.dylib", "to": "engine:frameworks/libicutest.76.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicutest.dylib", "to": "engine:frameworks/libicutest.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicutu.76.1.dylib", "to": "engine:frameworks/libicutu.76.1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicutu.76.dylib", "to": "engine:frameworks/libicutu.76.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicutu.dylib", "to": "engine:frameworks/libicutu.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicuuc.76.1.dylib", "to": "engine:frameworks/libicuuc.76.1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicuuc.76.dylib", "to": "engine:frameworks/libicuuc.76.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libicuuc.dylib", "to": "engine:frameworks/libicuuc.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libidn2.0.dylib", "to": "engine:frameworks/libidn2.0.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libidn2.dylib", "to": "engine:frameworks/libidn2.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libinotify.0.dylib", "to": "engine:frameworks/libinotify.0.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libinotify.dylib", "to": "engine:frameworks/libinotify.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libintl.8.dylib", "to": "engine:frameworks/libintl.8.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libintl.dylib", "to": "engine:frameworks/libintl.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/liblz4.1.10.0.dylib", "to": "engine:frameworks/liblz4.1.10.0.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/liblz4.1.dylib", "to": "engine:frameworks/liblz4.1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/liblz4.dylib", "to": "engine:frameworks/liblz4.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/liblzma.5.dylib", "to": "engine:frameworks/liblzma.5.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/liblzma.dylib", "to": "engine:frameworks/liblzma.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libMacportsLegacySupport.dylib", "to": "engine:frameworks/libMacportsLegacySupport.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libMacportsLegacySystem.B.dylib", "to": "engine:frameworks/libMacportsLegacySystem.B.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libnettle.8.9.dylib", "to": "engine:frameworks/libnettle.8.9.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libnettle.8.dylib", "to": "engine:frameworks/libnettle.8.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libnettle.dylib", "to": "engine:frameworks/libnettle.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libp11-kit.0.dylib", "to": "engine:frameworks/libp11-kit.0.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libp11-kit.dylib", "to": "engine:frameworks/libp11-kit.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libpcap.1.10.5.dylib", "to": "engine:frameworks/libpcap.1.10.5.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libpcap.A.dylib", "to": "engine:frameworks/libpcap.A.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libpcap.dylib", "to": "engine:frameworks/libpcap.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libpng16.16.dylib", "to": "engine:frameworks/libpng16.16.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libpng16.dylib", "to": "engine:frameworks/libpng16.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libpng.dylib", "to": "engine:frameworks/libpng.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libSDL2-2.0.0.dylib", "to": "engine:frameworks/libSDL2-2.0.0.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libSDL2.dylib", "to": "engine:frameworks/libSDL2.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libtasn1.6.dylib", "to": "engine:frameworks/libtasn1.6.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libtasn1.dylib", "to": "engine:frameworks/libtasn1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libunistring.5.dylib", "to": "engine:frameworks/libunistring.5.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libunistring.dylib", "to": "engine:frameworks/libunistring.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libxml2.2.dylib", "to": "engine:frameworks/libxml2.2.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libxml2.dylib", "to": "engine:frameworks/libxml2.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libxslt.1.dylib", "to": "engine:frameworks/libxslt.1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libxslt.dylib", "to": "engine:frameworks/libxslt.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libz.1.3.1.dylib", "to": "engine:frameworks/libz.1.3.1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libz.1.dylib", "to": "engine:frameworks/libz.1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libz.dylib", "to": "engine:frameworks/libz.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libzstd.1.5.6.dylib", "to": "engine:frameworks/libzstd.1.5.6.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libzstd.1.dylib", "to": "engine:frameworks/libzstd.1.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libzstd.dylib", "to": "engine:frameworks/libzstd.dylib" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/p11-kit-proxy.dylib", "to": "engine:frameworks/p11-kit-proxy.dylib" }
+      ]
+    },
+    {
+      "name": "moltenvk",
+      "version": "1.4.1 (stock build shipped in Template-1.0.11)",
+      "license": "Apache-2.0",
+      "url": "https://github.com/Sikarugir-App/Wrapper/releases/download/v1.0/Template-1.0.11.tar.xz",
+      "sha256": "9fa15479e7ff6abd99c1d07be285fb95f41fc6991586502427152b1f7d6ccb8a",
+      "format": "tar.xz",
+      "install": [
+        { "from": "Template-1.0.11.app/Contents/Frameworks/libMoltenVK.dylib", "to": "engine:frameworks/libMoltenVK.dylib" }
+      ]
+    },
+    {
+      "name": "dxvk",
+      "version": "DXVK-Kegworks 1.10.4-async (d3d9 only)",
+      "license": "zlib",
+      "url": "https://github.com/Sikarugir-App/Wrapper/releases/download/v1.0/Template-1.0.11.tar.xz",
+      "sha256": "9fa15479e7ff6abd99c1d07be285fb95f41fc6991586502427152b1f7d6ccb8a",
+      "format": "tar.xz",
+      "install": [
+        { "from": "Template-1.0.11.app/Contents/Frameworks/renderer/d9vk/wine/i386-windows/d3d9.dll", "to": "prefix:drive_c/windows/syswow64/d3d9.dll" },
+        { "from": "Template-1.0.11.app/Contents/Frameworks/renderer/d9vk/wine/x86_64-windows/d3d9.dll", "to": "prefix:drive_c/windows/system32/d3d9.dll" }
+      ]
+    }
+  ],
+  "prefix": {
+    "windowsVersion": "win10",
+    "dllOverrides": {
+      "d3d9": "native,builtin",
+      "winemenubuilder.exe": "d"
+    },
+    "env": {
+      "WINEMSYNC": "1",
+      "WINEDEBUG": "fixme-all",
+      "CX_FWD_COMPAT_GL_CTX": "1",
+      "DXVK_CONFIG_FILE": "C:\\ember\\dxvk.conf",
+      "DXVK_LOG_PATH": "C:\\ember\\logs"
+    },
+    "registry": [
+      { "key": "HKCU\\Software\\Wine\\Mac Driver", "name": "LeftCommandIsCtrl", "type": "REG_SZ", "data": "y" },
+      { "key": "HKCU\\Software\\Wine\\Mac Driver", "name": "RightCommandIsCtrl", "type": "REG_SZ", "data": "y" },
+      { "key": "HKCU\\Software\\Wine\\Mac Driver", "name": "LeftOptionIsAlt", "type": "REG_SZ", "data": "y" },
+      { "key": "HKCU\\Software\\Wine\\Mac Driver", "name": "RightOptionIsAlt", "type": "REG_SZ", "data": "y" }
+    ]
+  },
+  "fallback": {
+    "renderer": "wined3d",
+    "dllOverrides": {
+      "d3d9": "builtin"
+    },
+    "env": {
+      "WINEMSYNC": "1",
+      "WINEDEBUG": "fixme-all",
+      "CX_FWD_COMPAT_GL_CTX": "1"
+    },
+    "notes": "Skip the dxvk component in a fallback prefix; if its d3d9.dll files are already in system32/syswow64, delete both (a builtin-stamped DXVK DLL left there can still be selected). Wine's builtin d3d9 then renders through wined3d on macOS OpenGL. Expect lower performance and shader/visual differences; use only to separate engine faults from DXVK/MoltenVK faults."
+  },
+  "steam": {
+    "setupUrl": "https://cdn.cloudflare.steamstatic.com/client/installer/SteamSetup.exe",
+    "sha256": "7d3654531c32d941b8cae81c4137fc542172bfa9635f169cb392f245a0a12bcb",
+    "installArgs": [
+      "/S"
+    ],
+    "hiddenArgs": [
+      "-silent",
+      "-no-browser",
+      "-nofriendsui"
+    ],
+    "readyTimeoutSeconds": 120
+  },
+  "ember": {
+    "version": "1.1.1",
+    "repo": "Confetti3/SF4-Ember-Netplay",
+    "asset": "sf4-ember-netplay-1.1.1.zip",
+    "url": "https://github.com/Confetti3/SF4-Ember-Netplay/releases/download/v1.1.1/sf4-ember-netplay-1.1.1.zip",
+    "sha256": "f8831747ba896c8413cd5ad68ffd6b00f71dea74579eee5482cbd5b05b6231f9"
+  },
+  "game": {
+    "steamAppId": 45760,
+    "build": 834219,
+    "ssfivSha256": "5d724595a8ab3c6c6d6f4959187f756f5be35bb497e51e5233c4e73b18b0b9eb"
+  }
+}
