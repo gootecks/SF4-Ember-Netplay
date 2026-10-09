@@ -268,11 +268,13 @@ conn_state() {
 steam_logged_on() { case "$(conn_state "${1:-0}")" in *'[Logged On'*) return 0 ;; *) return 1 ;; esac; }
 
 # spawn_detached <logfile> <cwd> <cmd...>: survives the calling shell.
+# No nohup: /usr/bin/nohup is SIP-protected, so exec'ing through it strips DYLD_* and wineserver can't find its dylibs.
 spawn_detached() {
     local lf=$1 cwd=$2
     shift 2
     mkdir -p "$(dirname "$lf")"
-    ( cd "$cwd" && nohup "$@" >>"$lf" 2>&1 </dev/null & disown ) || die "failed to spawn: $*"
+    ( cd "$cwd" && trap '' HUP && exec "$@" >>"$lf" 2>&1 </dev/null ) &
+    disown || die "failed to spawn: $*"
 }
 
 # ---- paths / VDF ---------------------------------------------------------------
