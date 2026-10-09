@@ -135,3 +135,13 @@ Ember's per-15-second `Netplay [Ns]` lines report rift (frames ahead or behind t
 
 - **Verdict:** the M0 rig no longer falls behind its opponent. Rift and speed-up are now at Highball's level, even at higher ping than the 11:52–12:13 matches.
 - **Caveat:** two things changed at once (Ember 1.1.1 → 1.1.2 and msync on → off), plus a different opponent. It is not known which change fixed it. To separate them, play a few matches on 1.1.2 with msync **on** (`WINEMSYNC=1`, same kill / steam-start / launch steps). If rift stays near −0.5, the fix came from 1.1.2. If it goes back toward −2, msync was the cause.
+
+## 12. Desync against a new opponent (13:56)
+
+- **What the player saw:** "the match went 3 seconds, then kicked us out". The game showed "Match ended: the two games diverged (desync)". This is Ember's desync detector ending the match, not a dropped connection.
+- **Setup:** same launch as 11 (Ember 1.1.2, `WINEMSYNC=0`, DXVK). New opponent `dfd90efc`, `route=Direct fixed_port=yes`, generation 10, `seats=2/2 applied=2`. GGPO synchronized normally at 13:56:57.477 (`sf4e.log` lines 2774–2795).
+- **Divergence:** the first v2 checkpoint (frame 30, 13:57:02.838) already differed in `flow`, `chara0` and `chara1`, and so did every checkpoint after it. The v1 snapshot at frame 180 then showed `chara0 status 0 != 11`, `chara0 rootPos[0] -0x1.bae144p+0 != -0x1.ba6dfp+0` and `chara1 rootPos[0] 0x1.8f5c28p+0 != 0x1.8f4ce4p+0`, and the match was ended (`src/session/sf4e__SessionClient.cxx:177`).
+- **Reading:** the floating-point state was `x87 pc=24 rc=near mxcsr=0x1fbf` at the start and at every report. That is the same as in every clean M0 match and on Highball. All three subsystems differ from the first checkpoint, so the two games were never in step. A floating-point drift would usually show up in one subsystem later in the match. [INFERENCE] The likelier causes are a different starting state or inputs applied on different frames. Which side was wrong cannot be told from one log.
+- **Base rates:** Highball has 73 online matches with no desync. The M0 rig has had 1 desync in 24. Zero desyncs in 73 matches at a rate of 1 in 24 has a probability of about 5%, so this is weak evidence against the M0 rig. Ember's own release notes list desyncs as a known open issue (v0.8.5) and have fixed several since then (v0.9.5 throws, v0.9.9-rc2 shadow moves).
+- **Next match:** at 13:59 against another new opponent, `952a5905` (Direct). It ran without a desync.
+- **Needed to settle it:** the opponent's `%APPDATA%\sf4e\logs` (`sf4e.log` and the newest `session-*.log`) from the 13:56 match, plus their OS (Windows, Proton or Mac). If it happens again, set `SF4E_ROLLBACK_DIAGNOSTICS=1` on both PCs (release notes v0.8.12).
