@@ -2,7 +2,7 @@
 
 `m0.sh` builds an isolated WoW64 Wine prefix for Ember / Ultra Street Fighter IV on Apple Silicon,
 driven only by [`docs/validation/macos-engine-manifest.json`](../../docs/validation/macos-engine-manifest.json).
-It never touches Highball's data or processes. `lib.sh` holds the helpers.
+It never touches Highball's data or processes. `lib.sh` holds the helpers; `ember.sh` holds the Ember install and update steps.
 
 ## Prerequisites
 
@@ -40,10 +40,11 @@ scripts/macos-engine/m0.sh launch --hud
 | `library <dir> [letter]` | Symlinks `prefix/dosdevices/<letter>:` to the host dir and adds the library (`<dir>` itself or its child holding `steamapps`) to `libraryfolders.vdf` (backup `.m0bak`, existing entries kept). Refused while our Steam runs, or while Highball's wineserver runs and a Highball bottle maps the same host dir (two Steam clients must not share a library). |
 | `steam-login` | Starts Steam with no hidden args, detached, for the one-time interactive login. |
 | `steam-start` | Starts Steam with `steam.hiddenArgs`, detached (backgrounded subshell ignoring SIGHUP + `disown`, output `logs/<stamp>-steam.log`), then polls `logs/steamui_login.txt` for a `SetLoginState: Success` line newer than the start offset up to `steam.readyTimeoutSeconds` (current clients no longer write `[Logged On` to `connection_log.txt`). Not `nohup`: it is SIP-protected and would strip the engine's `DYLD_*` paths. |
-| `ember-install` | Downloads the Ember zip, verifies SHA-256, `ditto -x -k` to `drive_c/sf4e-<v>.tmp`, flattens a single top-level folder, verifies every file against the zip's `MANIFEST.txt` (`sha256  path` lines, CRLF tolerated), renames to `sf4e-<v>`. Rolls back on failure. |
+| `ember-install` | Installs the manifest's pinned `ember` release: downloads the zip, verifies SHA-256, `ditto -x -k` to `drive_c/sf4e-<v>.tmp`, flattens a single top-level folder, verifies every file against the zip's `MANIFEST.txt` (`sha256  path` lines, CRLF tolerated), renames to `sf4e-<v>`. Rolls back on failure. |
+| `ember-update` | Asks GitHub for the latest stable release of `ember.repo` (`/releases/latest`, so no drafts or pre-releases). If it is newer than every installed Ember, installs `sf4-ember-netplay-<v>.zip` into `drive_c/sf4e-<v>` the same way as `ember-install`, checking the zip against the asset's GitHub `digest` as Ember's own updater does (a release without a digest is refused). Installed versions are read from each install's `BUILD_INFO.txt` (`Release:`), so an install that Ember's in-game updater (Help & about > Check for updates) replaced in place is counted at its real version. Older installs are kept. If the check itself fails (offline, rate-limited), it warns and changes nothing. If an update is found but fails to install, it errors. |
 | `game-check` | Finds `appmanifest_45760.acf` in every library from `libraryfolders.vdf` (Windows paths mapped through `dosdevices`), prints appmanifest `buildid` vs manifest `game.build`, and compares `SSFIV.exe` SHA-256 with `game.ssfivSha256` (prints the computed value when the manifest has `null`). Exits non-zero on mismatch. |
-| `launch [--hud]` | Requires Steam logged on and `libraryfolders.vdf` listing app `45760` (a library registered while Steam ran is not adopted until Steam restarts, and the game then boots as Arcade Edition because the Ultra DLC looks uninstalled); starts `C:\sf4e-<v>\Launcher.exe` detached so `sf4-net.exe` and `ember-discord.exe` outlive the shell. `--hud` sets `DXVK_HUD=fps,frametimes` and `MTL_HUD_ENABLED=1`. |
-| `status` | Engine/prefix/Steam state, this prefix's wineserver (the PID holding `/tmp/.wine-<uid>/server-<dev>-<ino>/lock`, via `lsof`) and its Steam/Ember processes, tail of `launcher.log` and `sf4e.log`. |
+| `launch [--hud]` | Requires Steam logged on and `libraryfolders.vdf` listing app `45760` (a library registered while Steam ran is not adopted until Steam restarts, and the game then boots as Arcade Edition because the Ultra DLC looks uninstalled). Then runs `ember-update`, because room matches need every player on the same Ember build (`build_mismatch`), and Ember checks for updates only when asked. Starts the newest installed `C:\sf4e-<v>\Launcher.exe` detached so `sf4-net.exe` and `ember-discord.exe` outlive the shell. `--hud` sets `DXVK_HUD=fps,frametimes` and `MTL_HUD_ENABLED=1`. |
+| `status` | Engine/prefix/Steam state, installed Ember versions (`<version> <folder>`), this prefix's wineserver (the PID holding `/tmp/.wine-<uid>/server-<dev>-<ino>/lock`, via `lsof`) and its Steam/Ember processes, tail of `launcher.log` and `sf4e.log`. |
 | `kill` | `WINEPREFIX=<ours> wineserver -k` only. |
 
 ## Measuring fps / frame time

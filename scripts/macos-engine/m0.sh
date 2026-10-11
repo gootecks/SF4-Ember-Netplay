@@ -6,6 +6,8 @@ set -euo pipefail
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=lib.sh
 . "$HERE/lib.sh"
+# shellcheck source=ember.sh
+. "$HERE/ember.sh"
 
 usage() {
     cat <<'EOF'
@@ -18,9 +20,10 @@ subcommands:
   library <dir> [letter]  map an existing Steam library (default letter E) and register it with Steam
   steam-login             start Steam visibly for a one-time interactive login
   steam-start             start Steam hidden, wait for "SetLoginState: Success" in steamui_login.txt
-  ember-install           download, verify and install Ember into C:\sf4e-<version>
+  ember-install           download, verify and install the manifest's Ember into C:\sf4e-<version>
+  ember-update            install the latest stable Ember release if it is newer than every installed one
   game-check              locate SSFIV.exe in the Steam libraries and compare build/SHA-256
-  launch [--hud]          start Ember's Launcher.exe detached (Steam must be logged on)
+  launch [--hud]          ember-update, then start the newest installed Launcher.exe detached (Steam must be logged on)
   status                  show engine/prefix/Steam/Ember state for THIS prefix only
   kill                    wineserver -k for THIS prefix only
   all                     engine -> prefix -> steam-install
@@ -274,60 +277,6 @@ step_steam_start() {
     die "Steam did not reach 'SetLoginState: Success' within ${timeout}s (not logged in yet? run: m0.sh steam-login)"
 }
 
-# ---- ember -------------------------------------------------------------------
-step_ember_install() {
-    preflight_tools
-    need_prefix
-    local ver url sha file dest tmp top n list out
-    ver=$(jq_manifest '.ember.version') url=$(jq_manifest '.ember.url') sha=$(jq_manifest '.ember.sha256')
-    dest="$PFX/drive_c/sf4e-$ver"
-    if [ -f "$dest/Launcher.exe" ]; then say "Ember $ver already installed: $dest (nothing to do)"; return 0; fi
-    [ ! -e "$dest" ] || die "$dest exists without Launcher.exe; remove it and rerun"
-    file="$CACHE/$(jq_manifest '.ember.asset // empty')"
-    [ "$file" != "$CACHE/" ] || file="$CACHE/$(cache_name "$url")"
-    mkdir -p "$CACHE"
-    fetch_verified "$url" "$sha" "$file"
-    tmp="$dest.tmp"
-    rm -rf "$tmp" "$tmp.x"
-    mkdir -p "$tmp"
-    add_cleanup "$tmp"
-    add_cleanup "$tmp.x"
-    ditto -x -k "$file" "$tmp"
-    rm -rf "$tmp/__MACOSX"
-    top=""
-    n=$(find "$tmp" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')
-    if [ "$n" -eq 1 ] && [ -d "$(find "$tmp" -mindepth 1 -maxdepth 1)" ]; then
-        top=$(basename "$(find "$tmp" -mindepth 1 -maxdepth 1)")
-        mv "$tmp" "$tmp.x"
-        mv "$tmp.x/$top" "$tmp"
-        rm -rf "$tmp.x"
-        say "flattened top-level folder '$top'"
-    fi
-    [ -f "$tmp/MANIFEST.txt" ] || die "MANIFEST.txt not found in the Ember archive"
-    list=$(mktemp "$CACHE/manifest.XXXXXX")
-    add_cleanup "$list"
-    # Lines are "<64-hex>  <path>" (optionally "*path" binary marker, CRLF, ./ or top-folder prefix).
-    tr -d '\r' <"$tmp/MANIFEST.txt" | awk -v top="$top" '
-        length($1) == 64 && $1 ~ /^[0-9a-fA-F]+$/ {
-            h = tolower($1); p = $0
-            sub(/^[0-9a-fA-F]+[ \t]+\*?/, "", p)
-            gsub(/\\/, "/", p); sub(/^\.\//, "", p)
-            if (top != "" && index(p, top "/") == 1) p = substr(p, length(top) + 2)
-            print h "  " p }' >"$list"
-    n=$(wc -l <"$list" | tr -d ' ')
-    [ "$n" -gt 0 ] || die "MANIFEST.txt has no 'sha256  path' lines; format not understood"
-    say "verifying $n files against MANIFEST.txt"
-    if ! out=$(cd "$tmp" && shasum -a 256 -c "$list" 2>&1); then
-        printf '%s\n' "$out" | grep -v ': OK$' | sed -n 1,20p >&2 || true
-        die "Ember files do not match MANIFEST.txt"
-    fi
-    rm -f "$list"
-    [ -f "$tmp/Launcher.exe" ] || die "Launcher.exe missing from the Ember package"
-    mv "$tmp" "$dest"
-    clear_cleanup
-    say "Ember $ver installed: $dest ($n files verified)"
-}
-
 step_game_check() {
     need_prefix
     local vdf dirs p root acf inst exe got want build seen=0 rc=0 abuild
@@ -370,19 +319,20 @@ step_game_check() {
 
 step_launch() {
     need_prefix
-    local ver exe_dir
-    ver=$(jq_manifest '.ember.version')
-    exe_dir="$PFX/drive_c/sf4e-$ver"
-    [ -f "$exe_dir/Launcher.exe" ] || die "Ember not installed; run: m0.sh ember-install"
+    local newest ver dir
     steam_running && steam_logged_on 0 || die "Steam is not running/logged on in this prefix; run: m0.sh steam-start"
     grep -q '"45760"' "$STEAM_DIR/steamapps/libraryfolders.vdf" 2>/dev/null ||
         die "Steam has not adopted a library containing app 45760 (SSFIV would boot as Arcade Edition); run: m0.sh kill && m0.sh steam-start"
     if ours_has_proc SSFIV.exe; then say "SSFIV.exe already running in this prefix (nothing to do)"; return 0; fi
+    ember_update
+    newest=$(ember_newest)
+    [ -n "$newest" ] || die "Ember not installed; run: m0.sh ember-install"
+    ver=${newest%% *} dir=${newest#* }
     wine_env
     if [ "$HUD" -eq 1 ]; then export DXVK_HUD=fps,frametimes MTL_HUD_ENABLED=1; fi
     log_env
-    say "launching C:\\sf4e-$ver\\Launcher.exe (detached; output: $LOGS/$STAMP-launcher-wine.log)"
-    spawn_detached "$LOGS/$STAMP-launcher-wine.log" "$exe_dir" "$WINE" "C:\\sf4e-$ver\\Launcher.exe"
+    say "launching Ember $ver: C:\\$dir\\Launcher.exe (detached; output: $LOGS/$STAMP-launcher-wine.log)"
+    spawn_detached "$LOGS/$STAMP-launcher-wine.log" "$PFX/drive_c/$dir" "$WINE" "C:\\$dir\\Launcher.exe"
     sleep 5
     ours_tasklist | grep -iE 'Launcher\.exe|SSFIV\.exe|sf4-net\.exe|ember-discord\.exe' || warn "no Ember processes visible yet; see logs"
 }
@@ -394,6 +344,7 @@ step_status() {
     if [ -x "$ENGINES/$id/$wine_rel" ]; then say "engine:  present ($ENGINES/$id)"; else say "engine:  MISSING"; fi
     if [ -f "$MARKER" ]; then say "prefix:  present ($PFX) $(tr '\n' ' ' <"$MARKER")"; else say "prefix:  MISSING"; return 0; fi
     if [ -f "$STEAM_DIR/steam.exe" ]; then say "steam:   installed"; else say "steam:   not installed"; fi
+    say "ember:   $(ember_installs | sort -V -k1,1 | tr '\n' ',' | sed 's/,$//; s/,/, /g')"
     if ours_alive; then
         say "wineserver: running for this prefix (pids: $(ours_pids | tr '\n' ' '))"
         load_engine
@@ -463,6 +414,7 @@ case "$CMD" in
     steam-login) run_step steam-login step_steam_login ;;
     steam-start) run_step steam-start step_steam_start ;;
     ember-install) run_step ember-install step_ember_install ;;
+    ember-update) run_step ember-update step_ember_update ;;
     game-check) run_step game-check step_game_check ;;
     launch)
         for a in ${ARGS[@]+"${ARGS[@]}"}; do [ "$a" = --hud ] && HUD=1; done
