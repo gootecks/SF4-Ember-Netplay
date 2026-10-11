@@ -273,6 +273,7 @@ void OnReady(sf4e::SessionClient* const client, const sf4e::SessionClient::Callb
 }
 
 void OnBattleSynced(SessionClient* const client, const sf4e::SessionClient::Callbacks& callbacks) {
+    spdlog::info("VsBattle: battle_synced received; the load barrier released");
     fVsBattle::bSessionSynced = true;
 }
 

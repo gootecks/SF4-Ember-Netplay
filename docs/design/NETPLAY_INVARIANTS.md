@@ -35,6 +35,11 @@ Do not change these behaviors without regression testing (SessionInteractiveTest
   update until the engine closes it. Never let a netplay battle run the native
   pad path (F-016), and never write `RS_ISLEAVING` from a retirement path: the
   orphan handling is the one place that leaves a battle.
+- The VS load gate (`fVsBattle::HasInitialized`) waits for the room's
+  `battle_synced` only while the room match is live (`IsRuntimeMatchLive`).
+  A match that ends during the load never releases the barrier, so the battle
+  initializes, its GGPO start fails, and the orphan exit takes it out (#42).
+  Never make the load gate wait on a match that is gone.
 - A `CONNECTION_RESUMED` event clears only the warning; it can never undo a
   manual pause, a fatal abort, or the startup gate.
 - Routine in-match polling is `ggpo_idle(session, 0)` (nonblocking; the fork's
