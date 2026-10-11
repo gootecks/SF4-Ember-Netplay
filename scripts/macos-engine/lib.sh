@@ -156,10 +156,6 @@ drop_extracted() {
 install_component() {
     local i=$1 scope=$2 base=$3 name url sha fmt rows file x from to rel
     name=$(jq_manifest --argjson i "$i" '.components[$i].name')
-    if [ "$scope" = prefix ] && [ "$RENDERER" = wined3d ] && [ "$name" = dxvk ]; then
-        say "renderer wined3d: skipping DXVK files"
-        return 0
-    fi
     rows=$(jq_manifest --argjson i "$i" --arg s "$scope:" \
         '.components[$i].install[]? | select(.to | startswith($s)) | [.from, .to] | join("\u001f")')
     [ -n "$rows" ] || return 0
@@ -223,7 +219,14 @@ wine_env() {
     [ ! -d "$ENGINE_DIR/lib" ] || DYLD_FALLBACK_LIBRARY_PATH="$DYLD_FALLBACK_LIBRARY_PATH:$ENGINE_DIR/lib"
     export GST_PLUGIN_PATH="$gst/gstreamer-1.0"
     # Manifest env wins over the -all default above (it sets WINEDEBUG=fixme-all); --debug restores Wine's default.
-    if [ "$RENDERER" = wined3d ]; then export_env_block '.fallback.env'; else export_env_block '.prefix.env'; fi
+    if [ "$RENDERER" = wined3d ]; then
+        export_env_block '.fallback.env'
+    else
+        export_env_block '.prefix.env'
+        WINEDLLPATH_PREPEND="$ENGINE_DIR/$(jq_manifest '.engine.dxvkDllPathPrepend')"
+        export WINEDLLPATH_PREPEND
+        [ -f "$WINEDLLPATH_PREPEND/i386-windows/d3d9.dll" ] || die "DXVK d3d9.dll missing under $WINEDLLPATH_PREPEND; reinstall the engine (m0.sh engine)"
+    fi
     if [ "$DEBUG_WINE" -eq 1 ]; then unset WINEDEBUG; fi
 }
 

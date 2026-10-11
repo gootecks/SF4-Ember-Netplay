@@ -92,7 +92,7 @@ the DXVK zlib text). They are PE DLLs with Wine's builtin signature.
   (`E:` = `/Volumes/Result`, exFAT). Ember logs: `drive_c/users/prime/AppData/Roaming/sf4e/logs/`.
 - Local `SSFIV.exe` sha256 `5d724595...b0b9eb` equals the value pinned in the repo docs.
 
-## 2. Chosen components (manifest `ember-m0-sikarugir10.0_6-kegworks-dxvk1.10.4-moltenvk1.4.1`)
+## 2. Chosen components (manifest `ember-m0-sikarugir10.0_6-kegworks-dxvk1.10.4-moltenvk1.4.1-r2`)
 
 Design rule: reproduce what Highball runs for USF4 with unmodified public bytes only.
 No Highball binary or source is used.
@@ -143,13 +143,17 @@ No Highball binary or source is used.
 
   (identical effect to Highball's generated file; verify it in the DXVK log's
   `Effective configuration` block).
-- **d3d9 override.** The manifest copies the DLLs into `system32`/`syswow64` and sets
-  `d3d9=native,builtin`. Highball instead prepends a builtin directory via
-  `WINEDLLPATH_PREPEND` and has no override. Both should select DXVK; if the copy
-  approach misbehaves, an equivalent that mirrors Highball exactly is to place the DLLs
-  in a dir outside the prefix and export `WINEDLLPATH_PREPEND` with no override
-  **[INFERENCE: untested]**.
-- **Fallback.** `wined3d` on macOS OpenGL: `d3d9=builtin`, no DXVK DLLs in the prefix.
+- **d3d9 selection.** Mirrors Highball: the DLLs go into the engine at
+  `renderers/d9vk/wine/{i386,x86_64}-windows/`, every wine call exports
+  `WINEDLLPATH_PREPEND=<engine>/renderers/d9vk/wine`, and there is no `d3d9` override.
+  The first manifest (`...-moltenvk1.4.1`, no `-r2`) copied them into
+  `system32`/`syswow64` with `d3d9=native,builtin`. That failed silently: because the
+  DLLs are builtin-stamped, Wine loaded its own builtin `d3d9.dll` and the game ran on
+  `wined3d.dll` + `opengl32` + `AppleMetalOpenGLRenderer` (seen via `lsof` on the live
+  SSFIV process, no DXVK banner in the wine log). Online it measured persistently
+  slow: sf4e.log `spedUpMs` ~25 ms/s and rift -2..-6, against Highball's ~1 ms/s and
+  -0.3 (#35).
+- **Fallback.** `wined3d` on macOS OpenGL: `d3d9=builtin`, no `WINEDLLPATH_PREPEND`.
   Only for isolating engine faults from DXVK/MoltenVK faults.
 
 ### 2.2 Alternatives considered
