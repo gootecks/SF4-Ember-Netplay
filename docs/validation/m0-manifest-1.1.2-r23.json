@@ -6,7 +6,7 @@
       "app": "Highball 0.10.13 (app.highball.Highball)",
       "cli": "~/.local/bin/highball, no version flag; sha256 816796004a63481f1e30e6ca0793d7eff379d8fdc27dc086b863b423781ba2b4",
       "engineId": "x64-sikarugir10.0_6-r23",
-      "wine": "wine sikarugir 10.0 (revision 6) + r23 patches: wineserver/ntdll msync registration-leak fix (wine10-msync-20261001), winemac focus + retina fixes (winemac-focus-20261006)",
+      "wine": "wine sikarugir 10.0 (revision 6) + patches: wineserver/ntdll from Highball r22 wine10-dep-20261003 (msync registration-leak fix and DEP always-on edit; r23 ships only the msync-only wine10-msync-20261001 ntdll, which leaves the 140 s title, experiment log section 15), winemac focus + retina from r23 winemac-focus-20261006",
       "d3d9": "DXVK-Kegworks v1.10.4-async from Sikarugir Template-1.0.11 renderer/d9vk, Wine-builtin stamped, reached via WINEDLLPATH_PREPEND",
       "moltenvk": "1.4.1 (Highball shadow-import rebuild; feature off unless MVK_SHADOW_IMPORT=1)",
       "sync": "msync",
@@ -21,7 +21,8 @@
     "highballOnlyPatchesNotReproduced": [
       "libhbaudiobuf.dylib audio buffer (r23 ships it, Highball inserts it with DYLD_INSERT_LIBRARIES in the bottle environment; not installed or inserted here)"
     ],
-    "engineManifest": "docs/validation/macos-highball-engine-r23.json"
+    "engineManifest": "docs/validation/macos-highball-engine-r23.json",
+    "deviationFromR23": "ntdll.so and wineserver come from r22 wine10-dep-20261003 instead of r23 wine10-msync-20261001; wineserver bytes are identical, ntdll.so adds the DEP edit"
   },
   "engine": {
     "wine": "bin/wine",
@@ -45,11 +46,11 @@
       ]
     },
     {
-      "name": "wineserver-msync-fix",
-      "version": "wine10-msync-20261001",
+      "name": "wine-dep-msync",
+      "version": "wine10-dep-20261003 (msync registration-leak fix plus DEP always-on ntdll edit)",
       "license": "LGPL-2.1+",
-      "url": "https://github.com/gauthierpiarrette/highball-engine/releases/download/wine10-msync-20261001/wine10-msync-20261001.tar.xz",
-      "sha256": "c5f47326fab52d92bd072225c385365da12e615ac2b732dd51c6d085570fcac9",
+      "url": "https://github.com/gauthierpiarrette/highball-engine/releases/download/wine10-dep-20261003/wine10-dep-20261003.tar.xz",
+      "sha256": "be0a6de062b21b111c38aaaded76160c75ba3c167f7f6740b31cff3b8902a298",
       "format": "tar.xz",
       "install": [
         {
