@@ -129,20 +129,31 @@ void SessionServer::SendRoomTable(std::uint8_t tableId, const json& message) {
 
 void SessionServer::ArriveAtRoomBarrier(session::Connection connection, bool loadBarrier, const json& release) {
 	if (!_roomAuthority) return;
+	const char* barrier = loadBarrier ? "battle_loaded" : "punch_ready";
+	std::string tables;
 	for (std::uint8_t tableId = 0; tableId < room::TableCount; ++tableId) {
 		const auto* authority = RoomMatchAuthority(tableId);
-		if (!authority || authority->GetPhase() != session::MatchAuthority::Phase::Started ||
-			!IsRoomTableParticipant(connection, tableId)) continue;
+		const bool participant = IsRoomTableParticipant(connection, tableId);
+		if (!authority || authority->GetPhase() != session::MatchAuthority::Phase::Started || !participant) {
+			if (authority) tables += fmt::format(" t{}=phase{}/{}", tableId, static_cast<int>(authority->GetPhase()),
+				participant ? "participant" : "outsider");
+			continue;
+		}
 		auto& arrived = loadBarrier ? _roomBattleLoaded[tableId] : _roomPunchReady[tableId];
 		const auto first = authority->Fighter(0), second = authority->Fighter(1);
 		const auto fightersHere = [&] { return first && second && arrived.count(first) && arrived.count(second); };
 		const bool open = fightersHere();
 		arrived.insert(connection);
 		if (open) Respond(connection, release);
-		else if (fightersHere())
+		else if (fightersHere()) {
+			spdlog::info("Server: {} barrier released table={} generation={}", barrier, tableId, authority->Generation());
 			for (const auto peer : authority->LiveParticipants()) if (arrived.count(peer)) Respond(peer, release);
+		}
 		return;
 	}
+	const auto member = roomMembers.find(connection);
+	spdlog::warn("Server: {} arrival dropped connection={} member={}: no started table lists it{}", barrier, connection,
+		member == roomMembers.end() ? std::string("unknown") : std::to_string(member->second), tables);
 }
 
 bool SessionServer::BeginAuthorizedTable(std::uint8_t tableId, std::uint64_t generation) {

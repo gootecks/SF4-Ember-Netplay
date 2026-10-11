@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <detours/detours.h>
+#include <spdlog/spdlog.h>
 
 #include "../Dimps/Dimps.hxx"
 #include "../Dimps/Dimps__Event.hxx"
@@ -47,6 +48,7 @@ bool fVsBattle::bSessionSynced = false;
 bool fVsBattle::bOverrideNextRandomSeed = false;
 bool fVsBattle::bTerminateOnNextLeftBattle = false;
 DWORD fVsBattle::nextMatchRandomSeed = 0xffffffff;
+static bool s_loadBarrierAbandoned = false;
 bool fVsPreBattle::bSkipToVersus = false;
 
 char* fRootEvent::eventFlowDescription = R"(	Boot, 0, Title,										
@@ -229,13 +231,23 @@ int fVsBattle::HasInitialized() {
 	if (fUserApp::netplay) {
 		if (!bSessionSentLoaded) {
 			bSessionSentLoaded = true;
-			fUserApp::netplay->client.Battle_Loaded();
+			s_loadBarrierAbandoned = false;
+			if (fUserApp::netplay->client.Battle_Loaded() == sf4e::session::SendResult::Queued) {
+				spdlog::info("VsBattle: battle_loaded sent; waiting for the room's load barrier");
+			}
 		}
-		// A battle whose session ended before the room released it (the opponent
-		// left during the load) must still initialize, or nothing could drive it
-		// out.
+		// The room releases the load barrier only while the match it gates is
+		// live. A match that ended during the load (the opponent left) never
+		// releases it: the battle initializes, its GGPO start fails, and the
+		// orphan exit drives it out (F-016).
 		if (!bSessionSynced && !sf4e::Game::Battle::System::simGate.NativeExitRequired()) {
-			return 0;
+			if (sf4e::NetplayFacade::IsRuntimeMatchLive()) {
+				return 0;
+			}
+			if (!s_loadBarrierAbandoned) {
+				s_loadBarrierAbandoned = true;
+				spdlog::warn("VsBattle: the room match ended before the load barrier released; leaving the battle");
+			}
 		}
 	}
 
