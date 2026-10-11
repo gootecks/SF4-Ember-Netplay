@@ -217,11 +217,11 @@
     "readyTimeoutSeconds": 120
   },
   "ember": {
-    "version": "1.1.1",
+    "version": "1.1.2",
     "repo": "Confetti3/SF4-Ember-Netplay",
-    "asset": "sf4-ember-netplay-1.1.1.zip",
-    "url": "https://github.com/Confetti3/SF4-Ember-Netplay/releases/download/v1.1.1/sf4-ember-netplay-1.1.1.zip",
-    "sha256": "f8831747ba896c8413cd5ad68ffd6b00f71dea74579eee5482cbd5b05b6231f9"
+    "asset": "sf4-ember-netplay-1.1.2.zip",
+    "url": "https://github.com/Confetti3/SF4-Ember-Netplay/releases/download/v1.1.2/sf4-ember-netplay-1.1.2.zip",
+    "sha256": "e68921024eefdaf424ec3cccb67b8eb26793fc5624be5df61e4950884dc8f669"
   },
   "game": {
     "steamAppId": 45760,
