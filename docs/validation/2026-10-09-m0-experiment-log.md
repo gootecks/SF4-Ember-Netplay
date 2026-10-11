@@ -163,3 +163,13 @@ Ember's per-15-second `Netplay [Ns]` lines report rift (frames ahead or behind t
 - Only windows between match start and `Room: match ended` are counted. Windows that straddle the end of a match show rift down to −4.4 frames with no rollbacks, so they are menu and results-screen time.
 - **Against Highball** (rift −0.26 frames, speed-up 1.3 ms/s): close, at a ping of 56–181 ms. The Highball logs have no `stall_duration` lines, so the stalls cannot be compared.
 - **Totals since the switch to 1.1.2 with msync off (13:47):** 9 played matches, 0 VS-screen hangs, 1 desync. The msync on/off A/B from 11 is still open.
+
+## 14. VS-screen hang with msync back on (2026-10-11 07:03)
+
+- **Setup:** relaunched 2026-10-09 14:16:23 with `WINEMSYNC=1` (`/tmp/m0-manifest-1.1.2.json`), Ember 1.1.2, DXVK. The game then stayed up for about 41 hours. No online match was played until 2026-10-11. The player was connected to a VPN.
+- **Symptom:** a public-room match against peer `f774ea83` (generation 81, `Relayed`) logged `game_ready` 07:03:38, `Netplay: starting match` 07:03:39.772 and `Battle jobs` 07:03:42.902, then stopped on the VS screen. `Input: P1 plays`, which normally follows about 8 s later, never came, and GGPO was never started. This is the same pattern as 7.
+- **Not a desync:** desync checks run only once GGPO is running, and a desync ends the match with an on-screen message.
+- **The network side completed:** in `session-1228.log` the room's match session went `match_phase` 2 → 3 → 4, which is Prepared → Connecting → Started (`src/session/IrohMatchSession.hxx:16`). It then dropped to 0 when the match was abandoned. The stall came after that, inside the game's own loading. [INFERENCE] So the VPN is unlikely to be the cause, though one hang cannot rule it out.
+- **Capture:** `sample` of SSFIV (non-invasive) at 07:05: about 5% CPU, and nearly every thread was parked in the same kernel wait. The Wine frames have no symbols, so the sample does not show which object the threads were waiting on. Saved locally as `/tmp/ssfiv-vshang-20261011.txt`.
+- **Tally:** with msync on, 2 hangs in 17 room matches (7 and this one). With msync off, 0 in 9. This supports the msync lost-wakeup idea from 9 but does not prove it.
+- **Next:** relaunched 2026-10-11 07:06:40 with msync off (`/tmp/m0-manifest-1.1.2-nomsync.json`). A hang with msync off would rule msync out. A long run with msync off and no hangs is what would confirm it.
