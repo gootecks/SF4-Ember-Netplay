@@ -76,39 +76,22 @@ What carries over unchanged:
 
 Epic: [#1](https://github.com/gootecks/SF4-Ember-Netplay/issues/1) (sub-issues #2–#20, plus #33 upstream offer after the playtest)
 
-Critical path to the playtest: **M0 → M3 → M4 → M6**. That path runs the existing Windows `sf4-net.exe` inside our own Wine prefix, the way it runs under Highball today. M1 + M2 (the native helper) are the "native" track. They run in parallel and join the playtest build only if they're ready and stable. M5 runs alongside M4. Nothing in Phase I waits on upstream.
+Critical path to the playtest: **M0 → M3 → M4 → M6**. That path runs the existing Windows `sf4-net.exe` inside our Wine prefix, the way it runs under Highball today. The native helper (old M1 + M2) is shelved in the Backlog milestone below because it needs upstream changes. M5 runs alongside M4. Nothing in Phase I waits on upstream.
 
-### M0 — Pin our own engine (gate for everything)
+### M0 — Pin the engine (gate for everything)
 
-- Inventory the known-good reference: Highball version, engine id (`x64-sikarugir10.0_6-r22` or current), Wine version, DXVK d3d9/MoltenVK versions, and bottle settings (Windows version, DLL overrides, env vars). It already runs USF4 + Ember well on the Mac mini.
-- Pick a downloadable engine with the same components: a Gcenx/Sikarugir WoW64 Wine build plus DXVK d3d9 on MoltenVK, from upstream release URLs pinned by SHA-256. Fallback if DXVK d3d9 can't be reproduced: Wine's built-in `wined3d` (OpenGL) for D3D9.
-- Build a fresh prefix from a script, with no Highball involved: WoW64, DXVK d3d9, Windows Steam (`SteamSetup.exe`), login, USF4 install, Ember v1.1.1, `Launcher.exe`.
-- Measure our prefix against the Highball bottle: steady 60 fps, frame-time variance, input-to-photon delta against the Windows PC on the same display, and shader-compile hitching.
-- Prove two connections across the Wine boundary (needed by M1/M2): a native `nc -u` sees GGPO packets from the Wine-side loopback socket, and a native TCP listener accepts a Winsock connect from inside the prefix.
-- **Gate:** the scripted prefix plays a 10-game Mac↔Windows set with no desyncs and feels no worse than the Highball bottle. The engine manifest (URLs, SHA-256s, settings) and a baseline report go in `docs/validation/`, with the loopback result recorded either way.
-
-### M1 — Native sf4-net helper (Rust)
-
-- Add the `aarch64-apple-darwin` target. Get `cfg(windows)`-only modules (`ipc.rs`, `identity/platform.rs`) to compile out cleanly on macOS.
-- Add a **loopback TCP control transport** next to the named pipe. It listens on `127.0.0.1:0` and authenticates with the existing 42-byte `SF4N`+pid+nonce bootstrap (`ipc.rs:45-49`), which turns into a token handed over out of band. The frame format and `service/protocol.rs` messages stay unchanged.
-- Handle lifetime without Windows jobs: the helper exits when the control connection closes. The Swift app owns the process group (it replaces the `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` semantics at `src/platform/HelperProcess.cxx:61-67`).
-- Identity backend: macOS Keychain (`kSecClassGenericPassword`, this-device-only), stored under `~/Library/Application Support/Ember/Identity/v1`. Migration: import an existing passphrase-envelope identity from a Wine prefix (ours or a Highball bottle), so current Mac players keep their `emb1_` Ember ID and tournament history.
-- **Gate:** the `cargo test` suite passes on a macOS runner, and the native helper hosts and joins a room against a Windows peer driven by a test harness.
-
-### M2 — Windows-side external-helper mode (C++, ships to everyone)
-
-- `Launcher.exe`: a new `--helper tcp://127.0.0.1:<port>` argument plus the token passed by inherited handle or environment. In this mode it doesn't spawn `sf4-net.exe` and doesn't create the job object.
-- `HelperClient`: a TCP transport implementation behind the existing interface. The posix client is the model; Winsock replaces named-pipe I/O. Use the same authentication handshake (`HelperClient.cxx:135`).
-- `ember-discord.exe`: Phase I keeps the Windows x64 helper running under Wine. Its stdin bootstrap does `OpenProcess` on the game pid (`src/discord/BridgeServer.hxx:25-29`), which works inside one prefix. [INFERENCE] Discord IPC from inside Wine to the native Discord app needs a bridge. Verify in M0; if it fails, Discord linking is degraded in Phase I and becomes a native Discord Social SDK port in Phase II.
-- These are additive changes to the shared build. Windows behavior has to stay byte-identical when `--helper` is absent.
-- **Compatibility caveat:** the room build gate is the SHA of the `Sidecar.dll` binary itself (`src/sf4e/sf4e.cxx:43,229`, checked at `src/session/sf4e__SessionServer.cxx:492`; public room lists are keyed by it too, `sf4e__NetplayRuntime__PublicRooms.cxx:48,73`). A `Sidecar.dll` we build ourselves, even with these changes inactive, can only match other copies of that same build. So until upstream ships M2 in an official release, the M1/M2 track is Mac↔Mac only, and the playtest build stays on the critical path's unmodified official payload.
-- **Gate:** Windows CI stays green, and a new test covers the TCP transport handshake: rejection on a bad token, oversize frames, and peer close.
+- **Status: done** ([#47](https://github.com/gootecks/SF4-Ember-Netplay/issues/47) closed). The 10-game Mac↔Windows set remains open in [#3](https://github.com/gootecks/SF4-Ember-Netplay/issues/3).
+- Engine: Highball's r23 engine (`x64-sikarugir10.0_6-r23`) pinned through Highball's sha256-pinned archives, with the r22 `wine10-dep` `ntdll.so` for the DEP fix (title about 18 s vs about 140 s; `docs/validation/2026-10-11-highball-cli-spike.md`, experiment log §15). Components: Wine, DXVK d3d9 on MoltenVK. Fallback if DXVK d3d9 misbehaves: Wine's built-in `wined3d` (OpenGL) for D3D9.
+- Fresh prefix from a script (`scripts/macos-engine/`), with no Highball app or CLI involved: WoW64, DXVK d3d9, Windows Steam (`SteamSetup.exe`), login, USF4 install, Ember, `Launcher.exe`.
+- Measure the scripted prefix against the Highball bottle: steady 60 fps, frame-time variance, input-to-photon delta against the Windows PC on the same display, and shader-compile hitching.
+- The loopback checks (native `nc -u` sees GGPO packets from the Wine-side socket, native TCP listener accepts a Winsock connect) are recorded either way; they only matter to the shelved native helper.
+- **Gate:** the scripted prefix plays a 10-game Mac↔Windows set with no desyncs and feels no worse than the Highball bottle (#3). The engine manifest (`docs/validation/m0-manifest-1.1.2-r23.json`: URLs, SHA-256s, settings) and a baseline report go in `docs/validation/`.
 
 ### M3 — `EmberKit` engine manager (Swift package)
 
-Build this as a Swift package, not inside the app target, so FreeFighter can consume it unchanged in Phase II (replacing its Highball flow). Reuse the logic in FreeFighter's `EmberHighball.swift` (Steam launch arguments, login wait, `sf4e-<version>` install), `ProcessRunner`, `SteamConnectionLog`, VDF parser and `AppInstaller`/`ReleaseAssetResolver`. Both repos belong to gootecks, so this is a move, not a license question.
+`EmberKit` lives at `macos/EmberKit` in this fork. It is the Swift port of the working shell flow in `scripts/macos-engine/` (`m0.sh`, `lib.sh`, `ember.sh`, `README.md`). Build it as a Swift package, not inside the app target, so FreeFighter can consume it unchanged in Phase II (replacing its Highball flow). Reuse the logic in FreeFighter's `EmberHighball.swift` (Steam launch arguments, login wait, `sf4e-<version>` install), `ProcessRunner`, `SteamConnectionLog`, VDF parser and `AppInstaller`/`ReleaseAssetResolver`. Both repos belong to gootecks, so this is a move, not a license question.
 
-- Engine: download the M0-pinned engine (Wine + DXVK d3d9 + MoltenVK), verify SHA-256, extract to `~/Library/Application Support/Ember/Engine/<id>`, clear quarantine, and roll back on failure. There is exactly one pinned engine; no update channel.
+- Engine: download the M0-pinned Highball r23 engine (x64-sikarugir10.0_6-r23 plus the r22 `wine10-dep` `ntdll.so`, per `m0-manifest-1.1.2-r23.json`), verify SHA-256, extract to `~/Library/Application Support/Ember/Engine/<id>`, clear quarantine, and roll back on failure. There is exactly one pinned engine; no update channel.
 - Prefix: create a WoW64 prefix under `~/Library/Application Support/Ember/Prefix` and apply the M0 settings (Windows version, DXVK d3d9 overrides, env vars). Keep them in one engine manifest file, which is where later fighting-game tweaks go.
 - Steam: install Windows Steam (`SteamSetup.exe`, SHA-pinned), run a visible first login, then start it hidden (`-silent -no-browser -nofriendsui`). Readiness comes from the connection log, with a 120 s timeout. Install USF4 through Steam (`steam://install/45760`), or add an existing Steam library folder.
 - Ember payload: install the release zip (SHA-256 checked against the GitHub asset digest and `MANIFEST.txt`) into `sf4e-<version>` in the prefix, with rollback on failure.
@@ -127,9 +110,9 @@ Build this as a Swift package, not inside the app target, so FreeFighter can con
 
 ### M5 — Build, CI, release
 
-- CI: add a `macos-15` arm64 job that builds `EmberKit` + `Ember.app` and runs the Swift tests. Once M1 lands, it also builds sf4-net for aarch64 and runs the Rust tests. The existing Windows x86 job publishes the Windows payload the Mac job packages.
+- CI: add a `macos-15` arm64 job that builds `EmberKit` + `Ember.app` and runs the Swift tests. The Rust sf4-net aarch64 build and tests were meant to join once M1 landed; M1 is shelved (see Backlog), so that step is dropped for Phase I. The existing Windows x86 job publishes the Windows payload the Mac job packages.
 - Signing: Developer ID, hardened runtime, notarization for the DMG. The engine is downloaded on first run, not bundled, which keeps the DMG small and the notarization surface to our own code.
-- Licensing: Wine (LGPL-2.1) and MoltenVK (Apache-2.0) are downloaded unmodified from their upstream release URLs; DXVK is zlib. Third-party notices ship in the app. No Highball code or binaries (GPL-3).
+- Licensing: the Highball engine patch archives come from `highball-engine` (LGPL), downloaded unmodified and SHA-256 pinned. Wine (LGPL-2.1) and MoltenVK (Apache-2.0) ride inside them; DXVK is zlib. Third-party notices ship in the app. No Highball app code (GPL-3), no highball CLI, no HighballKit.
 - **Gate:** one tag produces a notarized DMG plus the Windows assets.
 
 ### M6 — Playtest (definition of done)
@@ -137,6 +120,27 @@ Build this as a Swift package, not inside the app target, so FreeFighter can con
 - A smoke matrix before inviting friends: gootecks' Mac mini plus at least one other Apple Silicon Mac; Wi-Fi and wired; one pad and one stick.
 - A playtest session with the Mac-dev friends: Mac↔Mac and Mac↔Windows, rooms and public queue, about 20 games total, with no desyncs.
 - Collect feedback (setup friction, feel, crashes) in a short report in `docs/validation/`. File the bugs found as Phase I issues, and the wishes as Phase II.
+
+### Backlog — native sf4-net helper (needs upstream)
+
+Shelved 2026-10-11, formerly M1 and M2. A Sidecar we build has its own build hash, so it can't play Windows players until upstream ships it in an official release. Phase I avoids anything that needs upstream. The critical path M0 → M3 → M4 → M6 is unchanged. Revisit after the M6 playtest, through the upstream offer in §7.
+
+#### Native sf4-net helper (Rust, was M1)
+
+- Add the `aarch64-apple-darwin` target. Get `cfg(windows)`-only modules (`ipc.rs`, `identity/platform.rs`) to compile out cleanly on macOS.
+- Add a **loopback TCP control transport** next to the named pipe. It listens on `127.0.0.1:0` and authenticates with the existing 42-byte `SF4N`+pid+nonce bootstrap (`ipc.rs:45-49`), which turns into a token handed over out of band. The frame format and `service/protocol.rs` messages stay unchanged.
+- Handle lifetime without Windows jobs: the helper exits when the control connection closes. The Swift app owns the process group (it replaces the `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` semantics at `src/platform/HelperProcess.cxx:61-67`).
+- Identity backend: macOS Keychain (`kSecClassGenericPassword`, this-device-only), stored under `~/Library/Application Support/Ember/Identity/v1`. Migration: import an existing passphrase-envelope identity from a Wine prefix (ours or a Highball bottle), so current Mac players keep their `emb1_` Ember ID and tournament history.
+- **Gate:** the `cargo test` suite passes on a macOS runner, and the native helper hosts and joins a room against a Windows peer driven by a test harness.
+
+#### Windows-side external-helper mode (C++, was M2)
+
+- `Launcher.exe`: a new `--helper tcp://127.0.0.1:<port>` argument plus the token passed by inherited handle or environment. In this mode it doesn't spawn `sf4-net.exe` and doesn't create the job object.
+- `HelperClient`: a TCP transport implementation behind the existing interface. The posix client is the model; Winsock replaces named-pipe I/O. Use the same authentication handshake (`HelperClient.cxx:135`).
+- `ember-discord.exe`: keep the Windows x64 helper running under Wine. Its stdin bootstrap does `OpenProcess` on the game pid (`src/discord/BridgeServer.hxx:25-29`), which works inside one prefix. [INFERENCE] Discord IPC from inside Wine to the native Discord app needs a bridge. If it fails, Discord linking is degraded and becomes a native Discord Social SDK port in Phase II.
+- These are additive changes to the shared build. Windows behavior has to stay byte-identical when `--helper` is absent.
+- **Compatibility caveat:** the room build gate is the SHA of the `Sidecar.dll` binary itself (`src/sf4e/sf4e.cxx:43,229`, checked at `src/session/sf4e__SessionServer.cxx:492`; public room lists are keyed by it too, `sf4e__NetplayRuntime__PublicRooms.cxx:48,73`). A `Sidecar.dll` we build ourselves, even with these changes inactive, can only match other copies of that same build. Until upstream ships this in an official release, the track is Mac↔Mac only.
+- **Gate:** Windows CI stays green, and a new test covers the TCP transport handshake: rejection on a bad token, oversize frames, and peer close.
 
 ## 6. Risks
 
@@ -153,7 +157,7 @@ Build this as a Swift package, not inside the app target, so FreeFighter can con
 
 ## 7. Decisions (2026-10-09)
 
-1. **Engine: self-managed, pinned, in Phase I.** For the PoC nobody needs engine updates, and if it succeeds we'll be making fighting-game-specific runtime tweaks in-house anyway. Highball is used only as the M0 reference.
+1. **Engine: Highball's r23 engine, pinned, in Phase I (updated 2026-10-11).** We don't build Wine and we don't self-assemble a stock Sikarugir engine. The engine is Highball's `x64-sikarugir10.0_6-r23`, taken from Highball's sha256-pinned archives, plus the r22 `wine10-dep` `ntdll.so` for the DEP fix (title screen in about 18 s instead of about 140 s; see `docs/validation/2026-10-11-highball-cli-spike.md`, experiment log §15). The pin is `docs/validation/m0-manifest-1.1.2-r23.json`, the default in `scripts/macos-engine/m0.sh`. Engine fixes go upstream to Highball. There is no highball CLI, no HighballKit, and `Ember.app`/`EmberKit` are MIT. The Windows payload is always the unmodified official Confetti3 release. The native `sf4-net` helper is shelved (see Backlog) because it needs upstream changes.
 2. **Distribution: standalone `Ember.app` first** as the proof of concept. FreeFighter adopts `EmberKit` in Phase II (II-B).
 3. **Upstream: build and prove it on our fork first, then offer it.** Phase I depends on no upstream decision. After the M6 playtest, offer the work to the Ember maintainers (who run `embernetplay.link` and appear receptive to PRs), ideally through an introduction from an Ember supporter, with a working demo rather than a proposal. If they decline, the fork stands on its own; Phase I needs no server changes.
 
@@ -227,9 +231,9 @@ flowchart LR
 
 ## 9. Next steps
 
-1. Run M0 on the Mac mini: inventory the Highball reference, then script our own pinned engine and prefix.
-2. Write the M2 design note in `docs/design/` (for our own build; it doubles as the upstream pitch later).
-3. Build `EmberKit` (M3) and then `Ember.app` (M4).
+1. Build `EmberKit` (M3) at `macos/EmberKit`, the Swift port of `scripts/macos-engine/`.
+2. Build `Ember.app` (M4) on top of it.
+3. Finish the 10-game Mac↔Windows set for M0 (#3).
 
 ## 10. Tracking
 
