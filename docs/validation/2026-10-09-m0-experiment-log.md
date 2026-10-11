@@ -174,3 +174,30 @@ Ember's per-15-second `Netplay [Ns]` lines report rift (frames ahead or behind t
 - **Tally:** with msync on, 2 hangs in 17 room matches (7 and this one). With msync off, 0 in 9. This supports the msync lost-wakeup idea from 9 but does not prove it.
 - **Next:** relaunched 2026-10-11 07:06:40 with msync off (`/tmp/m0-manifest-1.1.2-nomsync.json`). A hang with msync off would rule msync out. A long run with msync off and no hangs is what would confirm it.
 - **UDP lost when the VPN was turned off:** at 07:11:55 the msync-off run logged `nat=UDP blocked`. Ember never recovered. Three joins between 07:18 and 07:19 failed with `join_failed reason=host_unreachable`, and the room said "Could not reach the host, directly or through a relay". Restarting at 07:21:51 (kill, steam-start, launch) brought back `udp=true nat=open` at 07:22:02. This is the same no-recovery behaviour as in 1, now with a known trigger: a change of network route.
+
+## 15. Slow title screen: Wine turns DEP off because of three game DLLs (2026-10-11)
+
+- **Symptom:** on our engine the window opens after about 7 s, but the screen stays black for about 70 s, "Checking downloadable content" takes another 25 s, and the title screen fades in at under 1 FPS. It is fully bright only after about 140 s. SSFIV uses about 200% CPU the whole time. On Highball's engine the title screen is up in about 20 s.
+- **Difference between the engines:** our engine and Highball r22 differ in three files: `bin/wineserver`, `lib/wine/x86_64-unix/ntdll.so` and `lib/wine/x86_64-unix/winemac.so`. Highball's `ntdll.so` comes from its `wine10-dep-20261003` build. That build has the msync fix and a DEP change.
+- **Method:** every trial starts from a clean state: `kill`, `steam-start`, a 45 s wait, then `launch`. A screen watcher records the time from launch to the first non-black frame and to full brightness. All trials use msync off and Ember 1.1.2. Each engine variant is an APFS clone of ours with Highball files copied in.
+
+| Trial | Engine change | First image | Title fully bright | SSFIV CPU |
+| --- | --- | --- | --- | --- |
+| watch6 | none (stock) | 17.0 s | 140.4 s | ~205% |
+| watch7 | Highball `winemac.so` | 18.1 s | 137.7 s | ~206% |
+| watch8 | Highball `ntdll.so` + `wineserver` | 28.5 s | 36.6 s | ~136% |
+| watch9 | Highball `ntdll.so` (DEP build) only | 13.0 s | 20.1 s | ~134% |
+| watch10 | Highball `ntdll.so` from the msync-only build (before the DEP change) | 71.3 s | 139.5 s | ~203% |
+| watch5 | all three Highball files | 11.0 s | 18.1 s | ~133% |
+| watch11 | none, with `WINEDEBUG=warn+module` | 23.1 s | 140.5 s | ~202% |
+| watch12 | none, with the NX_COMPAT bit set on the three DLLs below | 14.0 s | 21.1 s | ~130% |
+
+- **The fix is the DEP change in `ntdll.so`.** `winemac.so` makes no difference (watch7). The msync change makes no difference either: msync was off in every trial, and the msync-only `ntdll.so` is as slow as stock (watch10). The DEP-build `ntdll.so` alone is enough (watch9).
+- **Cause:** with `warn+module` the stock engine logs `alloc_module disabling no-exec because of` `SSLEAY32.dll`, `LIBEAY32.dll` and `OpenLDAP.dll`. These three DLLs ship with SSFIV and are the only modules in the process without `IMAGE_DLLCHARACTERISTICS_NX_COMPAT`. In Wine 10 (`dlls/ntdll/loader.c:1554`), loading such a DLL calls `NtSetInformationProcess(ProcessExecuteFlags, MEM_EXECUTE_OPTION_ENABLE)`. That sets `force_exec_prot`, and `virtual_set_force_exec` (`dlls/ntdll/unix/virtual.c:4417`) re-maps every readable page in the process as executable.
+- **Proof:** setting the NX_COMPAT bit in those three files on the stock engine (watch12) made it as fast as Highball, and the `no-exec` lines were gone from the log. The original DLLs were put back afterwards (byte-identical to the backups in `/Volumes/EmberM0/nx-backup/`).
+- **Why it is slow:** [INFERENCE] under Rosetta 2, pages that are both writable and executable have to be treated as possibly self-modifying code, so writes to them invalidate translated code. Making all data pages executable would then cost the extra CPU and the slow first frames seen here. This was not measured directly.
+- **Ways to ship it (none done yet):**
+  1. Ship Highball's `ntdll.so` in the engine. This needs the DEP patch's source and its license terms (Wine is LGPL).
+  2. Set the NX_COMPAT bit in the three game DLLs. This works (watch12), but it changes files in the user's Steam install, and Steam's file verification would undo it.
+  3. Turn DEP back on from Ember at runtime, under Wine only. Wine allows `ProcessExecuteFlags` to be changed again unless `MEM_EXECUTE_OPTION_PERMANENT` is set (`dlls/ntdll/unix/process.c:1751`), and switching back re-maps all pages. Sidecar could call `SetProcessDEPPolicy(PROCESS_DEP_ENABLE)` early in the process. This has not been built or tested.
+- **msync:** this result does not answer the msync question from 9 and 14. msync does not affect load time, but whether it causes the VS-screen hang is still open.
