@@ -1,77 +1,73 @@
-# Spike: run Ember through the bundled Highball CLI (#47)
+# Spike: run Ember on Highball's r23 engine through the existing M0 flow (#47)
 
 Date: 2026-10-11. Machine: Apple M4, macOS 27, Ember 1.1.2, USF4 (Steam 45760) from an external Steam library.
 
+## Decision
+
+An earlier attempt drove Ember through a Highball bottle with a new adapter (`scripts/highball/ember-hb.sh`). That adapter
+was removed. Ember keeps the working `scripts/macos-engine` flow (`m0.sh --manifest <m> kill | steam-start | launch`,
+`EMBER_M0_ROOT=/Volumes/EmberM0`, msync on, DXVK d9vk path via `WINEDLLPATH_PREPEND`, prefix and Steam unchanged).
+Only the engine changes, to Highball's `x64-sikarugir10.0_6-r23`
+(manifest copy: `docs/validation/macos-highball-engine-r23.json`).
+
+## Manifest
+
+`docs/validation/m0-manifest-1.1.2-r23.json`, id `ember-m0-r23`. Differences from the `hbpatch` manifest
+(`ember-m0-hbpatch-test`, which overlaid Highball r22 files by hand):
+
+| Part | hbpatch | r23 |
+| --- | --- | --- |
+| wine | Sikarugir 10.0 rev 6 | same archive and sha256 |
+| `bin/wineserver`, `ntdll.so` | Highball r22 files (`ntdll.so` is the `wine10-dep` build, sha256 `089dc7b4...`) | `wine10-msync-20261001` (url and sha256 from the r23 manifest). `ntdll.so` is msync-only, sha256 `e0954d3f...` |
+| `winemac.so` | Highball focus and retina build | `winemac-focus-20261006` (same bytes, `b8be9bfc...`) |
+| runtime frameworks, DXVK-Kegworks 1.10.4 d9vk | Template-1.0.11 | same |
+| MoltenVK | stock 1.4.1 from the Template | 1.4.1 shadow-import rebuild (off unless `MVK_SHADOW_IMPORT=1`) |
+| `reference.highball.engineId` | r22 | r23 |
+| `highballOnlyPatchesNotReproduced` | five items | only `libhbaudiobuf.dylib` (r23 ships it, but Highball inserts it with `DYLD_INSERT_LIBRARIES` from the bottle environment; the M0 flow has no such step) |
+
+`prefix`, `steam`, `ember`, `game`, `fallback` and `engine` sections are unchanged. No change to `scripts/macos-engine` was needed:
+`m0.sh --manifest <r23> --cache-from /Volumes/EmberM0/hb-home/downloads engine` built `/Volumes/EmberM0/engine/ember-m0-r23` in 17 s
+from the pinned URLs (patch archives were copied from the earlier spike's download cache after the sha256 matched).
+`wineserver` and `winemac.so` hashes equal Highball's installed r23 engine; so does `ntdll.so`.
+
 ## Result
 
-Ember and USF4 run in a Highball bottle driven only by the `highball` CLI and `scripts/highball/ember-hb.sh`.
-After `launch`, `SSFIV.exe` is up in about 2 s and the Sidecar is initialised about 5 s after the launch command.
-The title screen ("ULTRA STREET FIGHTER IV, PRESS START") was seen on screen on the first launch.
-The earlier stock-Sikarugir engine needed about 140 s to reach the title (DEP, experiment log section 15).
+The game runs on r23 through the M0 flow. Sequence: `kill`, `steam-start`, 45 s wait, `launch`.
 
-[INFERENCE] "Time to title" is not measured to the second. Screen capture of the Wine window returned black
-(Metal layer) and region capture was covered by other windows, so the numbers above come from process start
-and Sidecar log timestamps, plus a person looking at the screen.
-
-## Pins
-
-| Item | Value |
+| Check | Evidence |
 | --- | --- |
-| Highball | tag `v0.10.14`, commit `d3ae31779fd6dd93ae3ac15ed9c65518f60357e2` |
-| CLI binary | built with `swift build -c release --product highball` in 51 s; sha256 `30baa72f4e0eff7745f9743f6acdf8f63c8686c06d094a633ca55ac0adcd748b` |
-| Engine | `x64-sikarugir10.0_6-r23`, manifest `docs/validation/macos-highball-engine-r23.json`, install 25 s |
-| `engine list` | `x64-sikarugir10.0_6-r23 wine-10.0 (Sikarugir) renderers: wined3d,dxmt,d3dmetal (licence not accepted),dxvk` |
+| Engine | `SSFIV.exe` maps `/Volumes/EmberM0/engine/ember-m0-r23/renderers/d9vk/wine/i386-windows/d3d9.dll` and `.../frameworks/libMoltenVK.dylib`; the prefix's wineserver is `/Volumes/EmberM0/engine/ember-m0-r23/bin/wineserver` |
+| DXVK | `SSFIV_d3d9.log`: `DXVK-Kegworks: v1.10.4-async`, `Found config file: C:\ember\dxvk.conf`, `d3d9.maxFrameLatency = 1`, `dxvk.enableAsync = True` |
+| msync | the launch log's effective environment lists `WINEMSYNC=1`, `WINEDLLPATH_PREPEND=.../ember-m0-r23/renderers/d9vk/wine`, `WINEPREFIX=/Volumes/EmberM0/prefix`. [INFERENCE] The process environment itself cannot be read from `ps` on macOS. |
+| Sidecar | `launcher.log`: `CreateSF4Process received Sidecar sync signal` 1.6 s after `resumed`; `sf4e.log`: `GGPO: battle ticks run on thread`, `Room: network relay=usw1 connected=true udp=true nat=open` |
+| Note | `steam-start` printed `did not reach 'SetLoginState: Success' within 120s`; `launch` then passed its own login check and Ember and the game started |
 
-## Bottle `ember` (HIGHBALL_HOME = `/Volumes/EmberM0/hb-home`, not the user's Highball data)
+## Time to title (method of experiment log section 15)
 
-- Created from `scripts/highball/ember-bottle.json` (own recipe). No USF4 recipe exists in highball-db,
-  and `steam.json` installs Steam first, which takes 15 to 25 minutes.
-- Renderer `dxmt`. SSFIV.exe is D3D9, so it runs on DXVK. Windows 10, dxvkAsync on.
-- DXVK log (`C:\highball\logs\SSFIV_d3d9.log`): `DXVK-Kegworks: v1.10.4-async`, config
-  `d3d9.maxFrameLatency = 1`, `dxvk.enableAsync = True`, device `Apple M4`, Vulkan 1.1.334.
-- Sync: the bottle asks for msync, but `bottle ps` shows `sync=none` with `MISMATCH` for Steam, Launcher.exe and
-  SSFIV.exe. The Steam pin sets `WINEMSYNC=0` and the wineserver Steam starts decides for the whole bottle.
-  Not fixed in this spike.
-- Steam: APFS clone of the M0 Steam folder. Library `R:\SteamLibrary` is a `dosdevices/r:` symlink to the
-  external volume, already listed in `libraryfolders.vdf`.
-- Ember 1.1.2 installed by the adapter (4755 files verified against `MANIFEST.txt`) at `C:\sf4e-1.1.2` and pinned.
+A screen watcher (`/tmp/ssfiv-watch.py`) logs the mean luminance of the `SSFIVAE` window once a second.
+The watcher was started about 28 s after the `launch` command (the first attempt to start it failed because `python3` lacked Quartz; it was
+started with `uv run --with pyobjc-framework-Quartz --with pillow`), so times below are the watcher time plus 28 s.
+The window appeared at the launch (Sidecar sync at 13:19:01.9, launch at 13:18:57).
 
-## Timings (second launch, after Steam was already signed in)
-
-| Event | Time after `launch` |
+| Event | After `launch` |
 | --- | --- |
-| Steam start to `SetLoginState: Success` (separate command) | 36 to 42 s |
-| `SSFIV.exe` process seen | about 2.3 s (first launch) |
-| Sidecar "Welcome to sf4e" | about 5 s (13:06:35 after launch at 13:06:30) |
-| Overlay: game draws at 1280x720 | 13:06:35.4 |
-| Room relay `usw1` connected, UDP, NAT open | 13:06:39.6 |
-| CPU of the game process | 200 to 360 % while loading, about 200 % in the title |
+| Window black (luminance about 2) | 0 to about 75 s |
+| First image (luminance 3.5 to 4) | about 75 s |
+| Picture fading in (luminance 51) | about 115 s |
+| Title bright (luminance above 100) | about 140 s |
+| SSFIV CPU | about 205 % while black and loading, 150 to 290 % while the picture fades in |
 
-Logs: `sf4e.log` in `C:\users\prime\AppData\Roaming\sf4e\logs`, Wine logs in `$HIGHBALL_HOME/logs`.
+This is the same as the stock engine in section 15 (watch6: first image 17 s, title bright 140 s, CPU about 205 %), and about seven times slower
+than the hbpatch engine (watch5/watch9: bright at 18 to 20 s). The r23 `ntdll.so` is the msync-only build, which section 15 measured as
+slow (watch10). It lacks the DEP change that the r22 `ntdll.so` has. The earlier adapter spike's "title in a few seconds" claim is not supported by this
+measurement; its bottle was never timed with the watcher.
 
-## Findings
-
-1. Works with the CLI alone. Needed: explicit recipe and manifest paths (the CLI looks in `./recipes` or
-   `../highball-db`), `HIGHBALL_HOME` for isolation, and a background start (`highball run` is foreground).
-2. Steam login does not carry over with a copied Steam folder alone. It needed the old prefix's
-   `AppData/Local/Steam/local.vdf` and the same `HKLM\Software\Microsoft\Cryptography\MachineGuid`
-   (value `728774df-...` from the M0 prefix). The user also signed in once by hand, so it is not proven
-   which of the two sufficed. `setup --login-from <prefix>` does both copies. A real Ember.app needs its own
-   first-run Steam sign-in anyway.
-3. Steam shows "Steam Service Error / Install service". Press Cancel. Harmless under Wine (Highball's Steam
-   recipe lists it as a known issue). Ember.app should not hide the Steam window on the first run.
-4. msync mismatch (see above) means all processes run without msync. Game speed was fine in this test.
-5. First sign-in cost 84 s in `steam-start` because of the human step; later starts 36 to 42 s.
+[INFERENCE] r23 will not give a fast title on its own. To get both r23's other components and the fast start, the manifest would need Highball's r22 `wine10-dep`
+`ntdll.so` (or section 15 option 3, `SetProcessDEPPolicy` from Sidecar). Neither was done here, because the decision was to change only the engine.
 
 ## Not done
 
-- `build-cli` (clone from GitHub into `$EMBER_HB_ROOT/src`) was not run end to end. The binary used was
-  built by hand from the same tag and commit in `/tmp/hb-v0.10.14`.
 - No netplay match was played.
-- Clean first-run (`setup` from nothing, with `--steam-recipe`) was not timed.
-
-## Licence
-
-Highball is GPL-3.0 and Ember is MIT. The `highball` CLI stays a separate executable that Ember.app starts.
-Each release ships Highball's `LICENSE`, the tag and commit, and a link to
-<https://github.com/gauthierpiarrette/highball/tree/v0.10.14>. See `scripts/highball/README.md`.
+- Whether the msync fix changes the VS-screen hang (experiment log sections 9 and 14) was not tested.
+- No `highball` CLI is used any more. Nothing from Highball is linked or bundled, so the GPL-3.0 notice in the earlier README no longer applies. The engine
+  components are downloaded from the manifest's URLs and keep their own licences.
