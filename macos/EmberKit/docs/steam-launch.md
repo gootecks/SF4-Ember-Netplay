@@ -27,7 +27,7 @@ await steam.kill()                        // wineserver -k, then -w
 | `step_game_check` | `gameCheck()` / `requireGameMatch()` |
 | `step_launch` | `launch(hud:)` |
 | `step_kill` | `kill()` |
-| `ember_installs`, `ember_newest` | `EmberInstall.installed(in:)`, `.newest(in:)` |
+| `ember_installs`, `ember_newest` | `EmberPayloadInstaller.installed(in:)`, `.newest(in:)` (shared with the payload module) |
 
 ## Readiness
 

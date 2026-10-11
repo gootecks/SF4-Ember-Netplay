@@ -2,7 +2,7 @@
 
 Swift package (tools 6.0, macOS 14+, no third-party dependencies) that installs the pinned Wine engine and builds the Wine prefix for Ember on macOS. It is the Swift port of the `engine` and `prefix` steps of `scripts/macos-engine/m0.sh`, driven by the same manifest. MIT licensed.
 
-The Windows payload is not touched here; it is always the unmodified official Confetti3 release.
+The engine and prefix steps never touch the Windows payload; it is always the unmodified official Confetti3 release, installed separately by `EmberPayloadInstaller`.
 
 ## Layout on disk
 
@@ -48,6 +48,45 @@ EmberError                                                          // typed Loc
 
 `Renderer` is `.dxvk` (default) or `.wined3d` (the manifest `fallback` block).
 
+### Steam, launch and game check (`docs/steam-launch.md`)
+
+```swift
+SteamController(wine:, downloader: = nil, highballDir:, ...)
+    .install() / .login() / .startHidden() async throws       // Steam in the prefix, hidden start, login state
+    .gameCheck() throws -> GameCheckReport / .requireGameMatch()
+    .launch(hud: Bool = false) async throws -> LaunchOutcome  // newest installed Ember
+    .tasklist() / .emberProcesses() / .kill() async
+
+SteamError                                                      // typed LocalizedError enum
+```
+
+See [docs/steam-launch.md](docs/steam-launch.md).
+
+### Ember payload (`docs/ember-payload.md`)
+
+```swift
+EmberPayloadInstaller(paths:, source: any EmberReleaseSource, downloader: = nil, log:)
+    .install(version: String? = nil) async throws -> InstalledEmber
+    .update() async throws -> EmberUpdateResult                // .upToDate | .installed | .checkFailed
+    .installed() / .newestInstalled()                          // instance, for the configured prefix
+    EmberPayloadInstaller.installed(in: URL) / .newest(in: URL) // shared listing, also used by SteamController.launch
+
+GitHubReleaseSource(repo:, session:, pinned:)                  // latest() / release(version:)
+EmberVersion.compare / isNewer                                  // numeric per dotted token, 1.10.0 > 1.9.1
+EmberPayloadError
+```
+
+Versions come from `BUILD_INFO.txt` (`Release:`) with the `sf4e-<version>` folder name as fallback. See [docs/ember-payload.md](docs/ember-payload.md).
+
+### Diagnostics (`docs/diagnostics.md`)
+
+```swift
+DiagnosticsBundle.create(paths:, manifest:, to: URL, ...)       // support bundle; secrets and Steam login files are denied
+DiagnosticsBundle.isDenied(_ name: String) -> Bool
+```
+
+See [docs/diagnostics.md](docs/diagnostics.md).
+
 ## Behavior
 
 - **Engine install**: each component with `engine:` install steps is downloaded, sha256-checked, extracted (`/usr/bin/tar` for `tar.xz`/`tar.gz`, `/usr/bin/ditto` for `zip`; an archive is extracted once per sha256), and its `from` paths are copied with `cp -Rpf` into a `Engine/<id>.tmp` staging dir. After a `bin/wine` check and `xattr -dr com.apple.quarantine`, the staging dir is moved atomically to `Engine/<id>`. Any failure removes the staging dir; a second call with a working engine is a no-op.
@@ -68,7 +107,7 @@ EmberError                                                          // typed Loc
 | `spawn_detached` | `ProcessRunner.spawnDetached`, `Wine.spawn` |
 | `MANIFEST` | `EngineManifest.bundled()` |
 
-Not ported (later milestones): Steam install and login, library setup, game check, launch, status, kill.
+The Windows payload is installed by `EmberPayloadInstaller`; Steam, game check, launch and diagnostics are covered above.
 
 ## Manifest copy
 

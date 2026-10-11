@@ -241,7 +241,7 @@ final class SteamTests: XCTestCase {
         try f.makeEmber("sf4e-1.10.0")
         try f.makeEmber("sf4e-1.9.1")
         try f.makeEmber("sf4e-old", release: "1.3.0")
-        XCTAssertEqual(f.controller().emberInstalls().map(\.version), ["1.2.0", "1.3.0", "1.9.1", "1.10.0"])
+        XCTAssertEqual(EmberPayloadInstaller.installed(in: f.paths.prefixDir).map(\.version), ["1.2.0", "1.3.0", "1.9.1", "1.10.0"])
         let outcome = try await f.controller().launch(hud: true)
         guard case .launched(let version, let pid) = outcome else { return XCTFail("\(outcome)") }
         XCTAssertEqual(version, "1.10.0")

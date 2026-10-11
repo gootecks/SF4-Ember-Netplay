@@ -3,6 +3,10 @@ import Foundation
 public struct InstalledEmber: Sendable, Equatable {
     public let version: String
     public let directory: URL
+
+    public var directoryName: String { directory.lastPathComponent }
+    public var windowsDirectory: String { "C:\\\(directoryName)" }
+    public var launcherWindowsPath: String { "\(windowsDirectory)\\Launcher.exe" }
 }
 
 public enum EmberUpdateResult: Sendable, Equatable {
@@ -36,20 +40,32 @@ public struct EmberPayloadInstaller: Sendable {
     }
 
     public func installed() -> [InstalledEmber] {
+        Self.installed(in: paths.prefixDir)
+    }
+
+    public func newestInstalled() -> InstalledEmber? {
+        Self.newest(in: paths.prefixDir)
+    }
+
+    public static func installed(in prefix: URL) -> [InstalledEmber] {
         let fm = FileManager.default
+        let driveC = prefix.appending(path: "drive_c", directoryHint: .isDirectory)
         let names = (try? fm.contentsOfDirectory(atPath: driveC.path)) ?? []
         var result: [InstalledEmber] = []
         for name in names where name.hasPrefix("sf4e-") && !name.hasSuffix(".tmp") {
             let dir = driveC.appending(path: name, directoryHint: .isDirectory)
             guard fm.fileExists(atPath: dir.appending(path: "Launcher.exe").path) else { continue }
             let fallback = String(name.dropFirst("sf4e-".count))
-            result.append(InstalledEmber(version: Self.buildVersion(in: dir) ?? fallback, directory: dir))
+            result.append(InstalledEmber(version: buildVersion(in: dir) ?? fallback, directory: dir))
         }
-        return result.sorted { EmberVersion.compare($0.version, $1.version) < 0 }
+        return result.sorted {
+            let order = EmberVersion.compare($0.version, $1.version)
+            return order == 0 ? $0.directoryName < $1.directoryName : order < 0
+        }
     }
 
-    public func newestInstalled() -> InstalledEmber? {
-        installed().last
+    public static func newest(in prefix: URL) -> InstalledEmber? {
+        installed(in: prefix).last
     }
 
     @discardableResult
