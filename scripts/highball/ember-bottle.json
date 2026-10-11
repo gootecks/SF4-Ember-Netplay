@@ -1,0 +1,37 @@
+{
+  "id": "ember-usf4",
+  "kind": "launcher",
+  "title": "Ember (SF4 netplay) on Steam",
+  "renderer": "dxmt",
+  "steps": [
+    {
+      "type": "note",
+      "text": "Same bottle settings as the user's Highball reference bottle for Steam: DXMT as the bottle renderer (D3D11 only; SSFIV.exe is D3D9 and goes to DXVK d3d9), msync for games, win10. Steam itself is not installed by this recipe: the adapter copies a signed-in Steam folder into the bottle, or run Highball's own steam.json recipe on the bottle first."
+    },
+    {
+      "type": "sync",
+      "sync": "msync"
+    },
+    {
+      "type": "dxvkconfig",
+      "exe": "SSFIV.exe",
+      "options": {
+        "d3d9.maxFrameLatency": "1",
+        "dxvk.enableAsync": "True"
+      }
+    },
+    {
+      "type": "pin",
+      "pin": {
+        "id": "0B5B2C6E-7B1E-4B9E-9C6E-5A1F3D2E1C01",
+        "name": "Steam",
+        "path": "Program Files (x86)/Steam/steam.exe",
+        "arguments": [],
+        "environment": {
+          "WINEMSYNC": "0",
+          "WINEESYNC": "0"
+        }
+      }
+    }
+  ]
+}
