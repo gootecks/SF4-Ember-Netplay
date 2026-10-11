@@ -75,7 +75,7 @@ public enum DiagnosticsBundle {
 
         try makeDir(destination.deletingLastPathComponent())
         try? fm.removeItem(at: destination)
-        _ = try await ProcessRunner.runChecked("/usr/bin/ditto", ["-c", "-k", "--keepParent", stage.path, destination.path])
+        _ = try await ProcessRunner.runChecked("/usr/bin/ditto", ["-c", "-k", "--norsrc", "--noextattr", "--keepParent", stage.path, destination.path])
         return destination
     }
 
