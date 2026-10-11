@@ -3,7 +3,7 @@
 
 US=$'\x1f' # field separator for jq rows (never appears in manifest values)
 SELF_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-MANIFEST="$SELF_DIR/../../docs/validation/macos-engine-manifest.json"
+MANIFEST="$SELF_DIR/../../docs/validation/m0-manifest-1.1.2-r23.json"
 ROOT="${EMBER_M0_ROOT:-$HOME/Library/Application Support/Ember-M0}"
 STAMP=$(date +%Y%m%d-%H%M%S)
 FORCE=0 DEBUG_WINE=0 HUD=0 RENDERER="" CACHE_FROM=""

@@ -1,7 +1,12 @@
 # macOS engine spike (M0): fresh Wine prefix without Highball
 
 `m0.sh` builds an isolated WoW64 Wine prefix for Ember / Ultra Street Fighter IV on Apple Silicon,
-driven only by [`docs/validation/macos-engine-manifest.json`](../../docs/validation/macos-engine-manifest.json).
+driven only by a manifest. The default is [`docs/validation/m0-manifest-1.1.2-r23.json`](../../docs/validation/m0-manifest-1.1.2-r23.json):
+Highball's engine `x64-sikarugir10.0_6-r23` with the r22 `wine10-dep` `ntdll.so`, which brings the title screen
+from about 140 s down to about 18 s (see [the spike results](../../docs/validation/2026-10-11-highball-cli-spike.md)).
+The older stock-Sikarugir manifest, `docs/validation/macos-engine-manifest.json`, is only for comparisons.
+If you pass `--manifest`, pass the same file to every step (`kill`, `steam-start`, `launch`): the wineserver
+that Steam starts decides which engine the game runs on.
 It never touches Highball's data or processes. `lib.sh` holds the helpers; `ember.sh` holds the Ember install and update steps.
 
 ## Prerequisites
