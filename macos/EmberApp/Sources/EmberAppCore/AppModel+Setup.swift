@@ -99,5 +99,6 @@ extension AppModel {
         record("setup complete")
         await refreshStatus()
         await refreshLatest()
+        await launchPendingLink()
     }
 }

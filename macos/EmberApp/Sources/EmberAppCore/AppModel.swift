@@ -47,6 +47,8 @@ public final class AppModel {
     public internal(set) var backend: any EmberBackend
     public internal(set) var appLog: AppLog
     public internal(set) var setupRunning = false
+    public internal(set) var pendingLinkKind: EmberLink.Kind?
+    var pendingLink: String?
 
     public var settings: AppSettings {
         didSet { settingsDidChange(from: oldValue) }

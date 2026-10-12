@@ -8,6 +8,11 @@ extension AppModel {
 
     public func play() async {
         guard phase == .ready, busy == nil else { return }
+        _ = await launch(joinLink: nil, label: "play")
+    }
+
+    @discardableResult
+    func launch(joinLink: String?, label: String) async -> Bool {
         busy = .playing
         notice = nil
         defer {
@@ -15,16 +20,19 @@ extension AppModel {
             progress = ""
         }
         let log = sink()
+        var succeeded = false
         do {
             if try await backend.ensureSteam(log: log) { startedSteam = true }
-            let summary = try await backend.launchGame(hud: settings.hud, log: log)
-            record("play: \(summary)")
+            let summary = try await backend.launchGame(hud: settings.hud, joinLink: joinLink, log: log)
+            record("\(label): \(summary)")
             notice = Notice(summary)
+            succeeded = true
         } catch {
-            record("play failed: \(error.localizedDescription)")
+            record("\(label) failed: \(error.localizedDescription)")
             notice = Notice(error.localizedDescription, isError: true)
         }
         await refreshStatus()
+        return succeeded
     }
 
     public func updateEmber() async {

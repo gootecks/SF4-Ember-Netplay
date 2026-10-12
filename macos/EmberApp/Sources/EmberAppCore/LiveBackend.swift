@@ -184,10 +184,11 @@ public struct LiveBackend: EmberBackend {
         try await steam(log: log).startHidden() != .alreadyReady
     }
 
-    public func launchGame(hud: Bool, log: @escaping LogSink) async throws -> String {
-        switch try await steam(log: log).launch(hud: hud) {
+    public func launchGame(hud: Bool, joinLink: String?, log: @escaping LogSink) async throws -> String {
+        switch try await steam(log: log).launch(hud: hud, joinLink: joinLink) {
         case .launched(let version, _): "Ember \(version) is starting"
         case .alreadyRunning: "The game is already running"
+        case .handedOff: "The link was handed to the running game"
         }
     }
 

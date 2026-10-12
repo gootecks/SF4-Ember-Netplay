@@ -3,6 +3,7 @@ import Foundation
 public enum LaunchOutcome: Sendable, Equatable {
     case launched(version: String, pid: Int32)
     case alreadyRunning
+    case handedOff
 }
 
 extension SteamController {
@@ -26,22 +27,28 @@ extension SteamController {
     }
 
     @discardableResult
-    public func launch(hud: Bool = false) async throws -> LaunchOutcome {
+    public func launch(hud: Bool = false, joinLink: String? = nil) async throws -> LaunchOutcome {
         try requirePrefix()
         try await requireLoggedOn()
         let vdf = (try? String(contentsOf: libraryFoldersFile, encoding: .utf8)) ?? ""
         guard SteamVDF.containsApp(appId, in: vdf) else { throw SteamError.libraryNotAdopted(appId: appId) }
-        if try await hasProcess("SSFIV.exe") {
+        let running = try await hasProcess("SSFIV.exe")
+        if running && joinLink == nil {
             log("SSFIV.exe already running in this prefix (nothing to do)")
             return .alreadyRunning
         }
         guard let install = EmberPayloadInstaller.newest(in: prefixDir) else { throw SteamError.emberNotInstalled }
         let extra = hud ? ["DXVK_HUD": "fps,frametimes", "MTL_HUD_ENABLED": "1"] : [:]
         let logFile = logFile("launcher-wine")
-        log("launching Ember \(install.version): \(install.launcherWindowsPath) (detached; output: \(logFile.path))")
+        var arguments = [install.launcherWindowsPath]
+        if let joinLink { arguments += ["--join-link", joinLink] }
+        if running {
+            log("SSFIV.exe already running; handing the link to the running game")
+        } else {
+            log("launching Ember \(install.version): \(install.launcherWindowsPath) (detached; output: \(logFile.path))")
+        }
         let pid = try wine.spawn(
-            [install.launcherWindowsPath], logFile: logFile, currentDirectory: install.directory,
-            extraEnvironment: extra)
-        return .launched(version: install.version, pid: pid)
+            arguments, logFile: logFile, currentDirectory: install.directory, extraEnvironment: extra)
+        return running ? .handedOff : .launched(version: install.version, pid: pid)
     }
 }

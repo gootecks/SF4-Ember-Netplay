@@ -11,7 +11,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let existingInstance else { return }
         existingInstance.activate()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { NSApp.terminate(nil) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { NSApp.terminate(nil) }
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        if let existingInstance, let target = existingInstance.bundleURL {
+            NSWorkspace.shared.open(urls, withApplicationAt: target, configuration: NSWorkspace.OpenConfiguration())
+            return
+        }
+        Task { @MainActor in
+            NSApp.activate()
+            for url in urls where await Shared.model.handle(link: url) == .refused {
+                Self.showRefusedLink()
+            }
+        }
+    }
+
+    @MainActor
+    private static func showRefusedLink() {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Ember cannot open this link"
+        alert.informativeText = "Only Ember join, tournament, room and Discord connect links are supported."
+        alert.runModal()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }

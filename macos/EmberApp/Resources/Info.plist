@@ -6,6 +6,19 @@
     <string>en</string>
     <key>CFBundleExecutable</key>
     <string>Ember</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>Ember link</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>ember</string>
+            </array>
+        </dict>
+    </array>
     <key>CFBundleIdentifier</key>
     <string>io.github.gootecks.ember</string>
     <key>CFBundleInfoDictionaryVersion</key>

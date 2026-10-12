@@ -76,13 +76,14 @@ struct SteamFixture {
     }
 
     func controller(
-        alive: Bool = true, highball: Bool = false, timeout: Double? = 0.4, poll: Double = 0.05
+        alive: Bool = true, highball: Bool = false, timeout: Double? = 0.4, poll: Double = 0.05,
+        log: @escaping @Sendable (String) -> Void = { _ in }
     ) -> SteamController {
         SteamController(
             wine: Wine(manifest: manifest, paths: paths, baseEnvironment: ["PATH": "/usr/bin:/bin"]),
             highballDir: dir.appending(path: "Highball"),
             readyTimeout: timeout, pollInterval: poll,
-            serverAlive: { alive }, highballWineserverRunning: { highball })
+            serverAlive: { alive }, highballWineserverRunning: { highball }, log: log)
     }
 
     func writeLoginLog(_ text: String, append: Bool = false) throws {

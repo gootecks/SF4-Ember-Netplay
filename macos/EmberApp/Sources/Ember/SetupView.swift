@@ -16,6 +16,10 @@ struct SetupView: View {
                     StepRow(model: model, step: step)
                 }
             }
+            if let kind = model.pendingLinkKind {
+                Label("A \(kind.rawValue) is waiting and opens when setup is complete.", systemImage: "link")
+                    .font(.callout)
+            }
             if !model.progress.isEmpty {
                 Text(model.progress)
                     .font(.caption.monospaced())

@@ -55,6 +55,10 @@ For the Steam folder and every library in the VDF (mapped through `dosdevices`),
 
 `launch()` requires a built prefix, Steam running and logged on (`notLoggedOn`), a VDF mentioning the app id, and an Ember install. If `SSFIV.exe` already runs it returns `.alreadyRunning`. Otherwise it spawns `C:\sf4e-<version>\Launcher.exe` detached with that directory as cwd (log `Logs/<stamp>-launcher-wine.log`); `hud: true` sets `DXVK_HUD=fps,frametimes` and `MTL_HUD_ENABLED=1`. Installs are `drive_c/sf4e-*` folders with a `Launcher.exe`; the version is `Release:` from `BUILD_INFO.txt` or the folder suffix, ordered numerically (`1.10.0` > `1.9.1`). Downloading and updating Ember is the payload installer's job, not this file's.
 
+`launch(joinLink:)` appends `--join-link <url>` to the launcher. When `SSFIV.exe` already runs, the launcher is still spawned with the link (it hands the link to the running game through its mailbox and exits) and the outcome is `.handedOff`. The link is never written to the log. `EmberLink.isAccepted(_:)` is a cheap pre-filter mirroring `src/common/JoinLink.hxx` and `src/common/TournamentLink.hxx` (`ember://join/<code>`, `ember://tournament/open`, `ember://room/open`, `ember://discord/connect`); the launcher stays the authority.
+
+`installGame()` starts visible Steam with `steam://install/45760` so the game installs into the prefix's default library; the caller polls `gameCheck()`. `stopEmber()` runs `wine taskkill /F /IM` for each name in `emberProcessNames` and leaves Steam running.
+
 ## Tests
 
 `SteamTests` uses a fake `wine` (logs its arguments to `calls.log`, prints `tasklist.txt` for `tasklist`, creates `steam.exe` for `SteamSetup.exe`), a prefilled cache for `SteamSetup.exe`, and fixture Steam files in a temp directory.

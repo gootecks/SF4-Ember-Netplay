@@ -54,12 +54,13 @@ EmberError                                                          // typed Loc
 SteamController(wine:, downloader: = nil, highballDir:, ...)
     .install() / .login() / .startHidden() async throws       // Steam in the prefix, hidden start, login state
     .gameCheck() throws -> GameCheckReport / .requireGameMatch()
-    .launch(hud: Bool = false) async throws -> LaunchOutcome  // newest installed Ember
+    .launch(hud: Bool = false, joinLink: String? = nil) async throws -> LaunchOutcome  // .launched | .alreadyRunning | .handedOff
     .tasklist() / .emberProcesses() / .kill() async
     .installGame() async throws                                // visible Steam at steam://install/45760; poll gameCheck()
     .stopEmber() async                                         // end only Ember processes, Steam keeps running
 
 SteamError                                                      // typed LocalizedError enum
+EmberLink.isAccepted(_ url: URL) -> Bool / .kind(of:) -> EmberLink.Kind?   // cheap ember:// pre-filter; the launcher stays the authority
 ```
 
 See [docs/steam-launch.md](docs/steam-launch.md).
