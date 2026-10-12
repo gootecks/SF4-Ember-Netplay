@@ -25,6 +25,7 @@ subcommands:
   game-check              locate SSFIV.exe in the Steam libraries and compare build/SHA-256
   launch [--hud]          ember-update, then start the newest installed Launcher.exe detached (Steam must be logged on)
   status                  show engine/prefix/Steam/Ember state for THIS prefix only
+  pads [seconds]          list the XInput/DInput controllers the game would see; with seconds, log every press
   kill                    wineserver -k for THIS prefix only
   all                     engine -> prefix -> steam-install
 
@@ -372,6 +373,18 @@ step_kill() {
     "$WINESERVER" -w || true
 }
 
+step_pads() {
+    local secs=${1:-0} src="$HERE/padprobe/padprobe.c" exe="$ROOT/tools/padprobe.exe"
+    [ -d "$PFX" ] || die "no prefix; run m0.sh prefix first"
+    if [ ! -f "$exe" ] || [ "$src" -nt "$exe" ]; then
+        command -v i686-w64-mingw32-gcc >/dev/null 2>&1 || die "padprobe needs i686-w64-mingw32-gcc (brew install mingw-w64)"
+        mkdir -p "$ROOT/tools"
+        i686-w64-mingw32-gcc -O2 -Wall -o "$exe" "$src" -ldinput8 -ldxguid -lxinput1_3
+    fi
+    wine_env
+    run_wine "$exe" "$secs"
+}
+
 # ---- driver ------------------------------------------------------------------
 run_step() {
     local name=$1 log rc
@@ -420,6 +433,7 @@ case "$CMD" in
         for a in ${ARGS[@]+"${ARGS[@]}"}; do [ "$a" = --hud ] && HUD=1; done
         run_step launch step_launch ;;
     status) run_step status step_status ;;
+    pads) run_step pads step_pads ${ARGS[@]+"${ARGS[@]}"} ;;
     kill) run_step kill step_kill ;;
     all)
         run_step engine step_engine
