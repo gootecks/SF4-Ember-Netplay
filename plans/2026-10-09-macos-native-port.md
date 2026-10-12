@@ -78,7 +78,7 @@ Epic: [#1](https://github.com/gootecks/SF4-Ember-Netplay/issues/1) (sub-issues #
 
 Critical path to the playtest: **M0 → M3 → M4 → M6**. That path runs the existing Windows `sf4-net.exe` inside our Wine prefix, the way it runs under Highball today. The native helper (old M1 + M2) is shelved in the Backlog milestone below because it needs upstream changes. M5 runs alongside M4. Nothing in Phase I waits on upstream.
 
-### M0 — Pin our own engine (gate for everything)
+### M0 — Pin the engine (gate for everything)
 
 - **Status: done** ([#47](https://github.com/gootecks/SF4-Ember-Netplay/issues/47) closed). The 10-game Mac↔Windows set remains open in [#3](https://github.com/gootecks/SF4-Ember-Netplay/issues/3).
 - Engine: Highball's r23 engine (`x64-sikarugir10.0_6-r23`) pinned through Highball's sha256-pinned archives, with the r22 `wine10-dep` `ntdll.so` for the DEP fix (title about 18 s vs about 140 s; `docs/validation/2026-10-11-highball-cli-spike.md`, experiment log §15). Components: Wine, DXVK d3d9 on MoltenVK. Fallback if DXVK d3d9 misbehaves: Wine's built-in `wined3d` (OpenGL) for D3D9.
@@ -137,6 +137,27 @@ Critical path to the playtest: **M0 → M3 → M4 → M6**. That path runs the e
 - **Compatibility caveat:** the room build gate is the SHA of the `Sidecar.dll` binary itself (`src/sf4e/sf4e.cxx:43,229`, checked at `src/session/sf4e__SessionServer.cxx:492`; public room lists are keyed by it too, `sf4e__NetplayRuntime__PublicRooms.cxx:48,73`). A `Sidecar.dll` we build ourselves, even with these changes inactive, can only match other copies of that same build. So until upstream ships M2 in an official release, the M1/M2 track is Mac↔Mac only, and the playtest build stays on the critical path's unmodified official payload.
 - **Gate:** Windows CI stays green, and a new test covers the TCP transport handshake: rejection on a bad token, oversize frames, and peer close.
 
+
+### Backlog — native sf4-net helper (needs upstream)
+
+Shelved 2026-10-11, formerly M1 and M2. A Sidecar we build has its own build hash, so it can't play Windows players until upstream ships it in an official release. Phase I avoids anything that needs upstream. The critical path M0 → M3 → M4 → M6 is unchanged. Revisit after the M6 playtest, through the upstream offer in §7.
+
+#### Native sf4-net helper (Rust, was M1)
+
+- Add the `aarch64-apple-darwin` target. Get `cfg(windows)`-only modules (`ipc.rs`, `identity/platform.rs`) to compile out cleanly on macOS.
+- Add a **loopback TCP control transport** next to the named pipe. It listens on `127.0.0.1:0` and authenticates with the existing 42-byte `SF4N`+pid+nonce bootstrap (`ipc.rs:45-49`), which turns into a token handed over out of band. The frame format and `service/protocol.rs` messages stay unchanged.
+- Handle lifetime without Windows jobs: the helper exits when the control connection closes. The Swift app owns the process group (it replaces the `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` semantics at `src/platform/HelperProcess.cxx:61-67`).
+- Identity backend: macOS Keychain (`kSecClassGenericPassword`, this-device-only), stored under `~/Library/Application Support/Ember/Identity/v1`. Migration: import an existing passphrase-envelope identity from a Wine prefix (ours or a Highball bottle), so current Mac players keep their `emb1_` Ember ID and tournament history.
+- **Gate:** the `cargo test` suite passes on a macOS runner, and the native helper hosts and joins a room against a Windows peer driven by a test harness.
+
+#### Windows-side external-helper mode (C++, was M2)
+
+- `Launcher.exe`: a new `--helper tcp://127.0.0.1:<port>` argument plus the token passed by inherited handle or environment. In this mode it doesn't spawn `sf4-net.exe` and doesn't create the job object.
+- `HelperClient`: a TCP transport implementation behind the existing interface. The posix client is the model; Winsock replaces named-pipe I/O. Use the same authentication handshake (`HelperClient.cxx:135`).
+- `ember-discord.exe`: keep the Windows x64 helper running under Wine. Its stdin bootstrap does `OpenProcess` on the game pid (`src/discord/BridgeServer.hxx:25-29`), which works inside one prefix. [INFERENCE] Discord IPC from inside Wine to the native Discord app needs a bridge. If it fails, Discord linking is degraded and becomes a native Discord Social SDK port in Phase II.
+- These are additive changes to the shared build. Windows behavior has to stay byte-identical when `--helper` is absent.
+- **Compatibility caveat:** the room build gate is the SHA of the `Sidecar.dll` binary itself (`src/sf4e/sf4e.cxx:43,229`, checked at `src/session/sf4e__SessionServer.cxx:492`; public room lists are keyed by it too, `sf4e__NetplayRuntime__PublicRooms.cxx:48,73`). A `Sidecar.dll` we build ourselves, even with these changes inactive, can only match other copies of that same build. Until upstream ships this in an official release, the track is Mac↔Mac only.
+- **Gate:** Windows CI stays green, and a new test covers the TCP transport handshake: rejection on a bad token, oversize frames, and peer close.
 
 ## 6. Risks
 
