@@ -307,4 +307,42 @@ final class SteamTests: XCTestCase {
         XCTAssertTrue(f.calls().contains("wineserver -k"))
         XCTAssertTrue(f.calls().contains("wineserver -w"))
     }
+
+    private func waitForCall(_ f: SteamFixture, _ text: String) async throws {
+        let deadline = Date().addingTimeInterval(3)
+        while !f.calls().contains(text), Date() < deadline {
+            try await Task.sleep(for: .milliseconds(50))
+        }
+    }
+
+    func testLaunchPassesJoinLink() async throws {
+        let f = try fixture()
+        try readyForLaunch(f)
+        try f.makeEmber("sf4e-1.1.2")
+        let outcome = try await f.controller().launch(joinLink: "ember://join/7K3M-0X1R-T9PZ")
+        guard case .launched = outcome else { return XCTFail("\(outcome)") }
+        try await waitForCall(f, "--join-link")
+        XCTAssertTrue(f.calls().contains("Launcher.exe --join-link ember://join/7K3M-0X1R-T9PZ"))
+    }
+
+    func testLaunchHandsLinkToRunningGame() async throws {
+        let f = try fixture()
+        try readyForLaunch(f)
+        try f.makeEmber("sf4e-1.1.2")
+        try f.setTasklist("steam.exe 1\r\nSSFIV.exe 2\r\n")
+        let outcome = try await f.controller().launch(joinLink: "ember://join/7K3M-0X1R-T9PZ")
+        XCTAssertEqual(outcome, .handedOff)
+        try await waitForCall(f, "--join-link")
+        XCTAssertTrue(f.calls().contains("Launcher.exe --join-link ember://join/7K3M-0X1R-T9PZ"))
+    }
+
+    func testLaunchLogDoesNotContainLink() async throws {
+        let f = try fixture()
+        try readyForLaunch(f)
+        try f.makeEmber("sf4e-1.1.2")
+        try f.setTasklist("steam.exe 1\r\nSSFIV.exe 2\r\n")
+        let lines = LogRecorder()
+        _ = try await f.controller(log: { lines.add($0) }).launch(joinLink: "ember://join/7K3M-0X1R-T9PZ")
+        XCTAssertFalse(lines.all().contains { $0.contains("7K3M") })
+    }
 }

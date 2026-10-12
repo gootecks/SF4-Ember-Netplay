@@ -10,7 +10,7 @@ public protocol EmberBackend: Sendable {
     func status() async -> StatusSnapshot
     func latestEmber() async -> String?
     func ensureSteam(log: @escaping LogSink) async throws -> Bool
-    func launchGame(hud: Bool, log: @escaping LogSink) async throws -> String
+    func launchGame(hud: Bool, joinLink: String?, log: @escaping LogSink) async throws -> String
     func updateEmber(policy: VersionPolicy, log: @escaping LogSink) async throws -> String
     func createDiagnostics(at destination: URL) async throws -> URL
     func isGameRunning() async -> Bool
