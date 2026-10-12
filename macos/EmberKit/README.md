@@ -56,6 +56,8 @@ SteamController(wine:, downloader: = nil, highballDir:, ...)
     .gameCheck() throws -> GameCheckReport / .requireGameMatch()
     .launch(hud: Bool = false) async throws -> LaunchOutcome  // newest installed Ember
     .tasklist() / .emberProcesses() / .kill() async
+    .installGame() async throws                                // visible Steam at steam://install/45760; poll gameCheck()
+    .stopEmber() async                                         // end only Ember processes, Steam keeps running
 
 SteamError                                                      // typed LocalizedError enum
 ```

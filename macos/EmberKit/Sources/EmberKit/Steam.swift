@@ -215,7 +215,7 @@ public struct SteamController: Sendable {
         return true
     }
 
-    private func spawnSteam(_ args: [String]) throws {
+    func spawnSteam(_ args: [String]) throws {
         log("starting Steam: steam.exe \(args.joined(separator: " "))")
         try wine.spawn(
             [Self.steamExeWindowsPath] + args, logFile: logFile("steam"), currentDirectory: steamDir)

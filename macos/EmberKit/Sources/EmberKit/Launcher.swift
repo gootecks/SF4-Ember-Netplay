@@ -14,6 +14,17 @@ extension SteamController {
         }
     }
 
+    public func stopEmber() async throws {
+        guard await serverAlive() else {
+            log("no wineserver for this prefix (nothing to do)")
+            return
+        }
+        for name in Self.emberProcessNames {
+            log("taskkill /F /IM \(name)")
+            _ = try await wine.run(["taskkill", "/F", "/IM", name], check: false)
+        }
+    }
+
     @discardableResult
     public func launch(hud: Bool = false) async throws -> LaunchOutcome {
         try requirePrefix()
